@@ -1,0 +1,73 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/version.json",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Access-Control-Allow-Origin", "value": "*" }
+        ]
+      },
+      {
+        "source": "/bundle.zip",
+        "headers": [
+          { "key": "Access-Control-Allow-Origin", "value": "*" }
+        ]
+      },
+      {
+        "//": "APK indirmeleri: doğru içerik türü, dosya olarak sun, önbelleğe alma.",
+        "source": "/downloads/**",
+        "headers": [
+          { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+          { "key": "Content-Disposition", "value": "attachment" },
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "//": "İndirme sayfası sürüme göre değişir: önbellek tutulmaz.",
+        "source": "/indir.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      },
+      {
+        "//": "Yönetim paneli arama motorlarına kapalı ve önbelleksiz.",
+        "source": "/yonetim*",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "Referrer-Policy", "value": "no-referrer" }
+        ]
+      },
+      {
+        "//": "Servis çalışanı güncellenince tarayıcı yenisini alsın.",
+        "source": "/sw.js",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "//": "Kök HTML: önbellek tutulmaz, yeni sürüm hemen görülür.",
+        "source": "/index.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "//": "Parçalı dosyaların adı içinde karması vardır, güvenle önbelleklenir.",
+        "source": "/assets/**",
+        "headers": [{ "key": "Cache-Control", "value": "max-age=31536000, immutable" }]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/__/auth/action",
+        "destination": "/reset-password.html"
+      },
+      {
+        "source": "/yonetim",
+        "destination": "/yonetim.html"
+      }
+    ]
+  }
+}

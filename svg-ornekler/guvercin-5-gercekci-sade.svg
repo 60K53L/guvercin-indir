@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- misri_ref2.jpg referansı — 2 — Gerçekçi sade: 16-20 px'te en okunur hâli -->
+  <g>
+    <path d="M 23 23 L 29 22 C 30 16 32 11 39 9 C 46 9 50 13 50 19 C 50 24 49 28 47 31 C 48 34 49 37 49 40 C 55 42 61 44 65 48 C 69 52 70 56 69 60 C 67 64 63 67 59 68 C 53 69 48 68 45 66 C 44 63 43 61 43 58 C 33 52 25 46 19 40 C 17 38 18 36 20 36 C 27 38 35 40 43 44 C 43 41 43 39 43 37 C 42 34 41 32 40 30 C 35 28 29 26 23 23 Z" fill="#f7f4ef"/>
+    <path d="M 43 34 C 46 38 48 42 48 46 C 48 50 46 52 44 53 C 40 52 38 50 36 48 C 37 44 39 40 40 36 Z" fill="#cfa982"/>
+    <g stroke="#cfa982" stroke-width="2.4" stroke-linecap="round" fill="none">
+      <path d="M 46 73 L 47 77 M 47 77 L 43 79 M 47 77 L 51 79"/>
+    </g>
+    <circle cx="40" cy="19" r="3.4" fill="#475569"/>
+  </g>
+</svg>

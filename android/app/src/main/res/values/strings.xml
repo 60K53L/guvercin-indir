@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Güvercin</string>
+    <string name="title_activity_main">Güvercin</string>
+    <string name="package_name">com.guvercin.soy</string>
+    <string name="custom_url_scheme">com.guvercin.soy</string>
+</resources>

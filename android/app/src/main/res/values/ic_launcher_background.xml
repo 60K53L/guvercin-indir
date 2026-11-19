@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive ikonun arka planı. Kaynak ikonun gradyanına uygun
+         mavi-teal; ön plan (güvercin) bunun üstüne oturur. -->
+    <color name="ic_launcher_background">#1F86D6</color>
+</resources>

@@ -1,0 +1,61 @@
+# Bağımlılıklar
+node_modules/
+
+# Derleme çıktıları
+/dist/
+/app/
+/web/
+/release/
+/build/android/
+*.blockmap
+*.apk
+*.zip
+
+# NOT: yedek/ SİLİNMİYOR — içinde tarih damgalı EXE ve APK kopyaları var
+# (GitHub yedeği). dist/ geçici derleme klasörü, yedek/ ise arşiv.
+
+# Tema ön izleme / teşhis ekran görüntüleri (yerelde tutulur, depoya girmez)
+/temalar/
+
+# Capacitor / Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+*.iml
+
+# iOS (ileride)
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+
+# Ortam / anahtarlar
+.env
+.env.*
+*.keystore
+*.jks
+serviceAccount*.json
+firebase-debug.log
+firestore-debug.log
+.ui-r debugging.log
+
+# Test / ekran görüntüsü artıkları (ikon dosyaları hariç)
+build/*
+!build/icon.ico
+!build/icon.png
+*.log
+# Firebase CLI onbellegi
+.firebase/
+
+# Python önbellekleri
+__pycache__/
+*.pyc
+
+# Yerel gelistirme artikleri (depoya girmez)
+/.frames/
+/.yedek/
+/_vektor_calisma_arsivi/
+/opencode.jsonc

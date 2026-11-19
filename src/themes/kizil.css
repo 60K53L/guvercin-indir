@@ -1,0 +1,25 @@
+/* TEMA: KIZIL — derin bordo zemin, amber vurgu, köşeler daha keskin.
+   Sıcak ve yüksek kontrastlı görünüm; dış mekân ve güneş altında belirgin. */
+:root {
+  --bg: #180f10;
+  --panel: #221517;
+  --panel-2: #2c1b1e;
+  --line: #40282c;
+  --line-strong: #56373d;
+  --hover: #ffffff0f;
+  --wash: #ffffff0a;
+  --text: #f2e6e4;
+  --muted: #b39a97;
+  --accent: #e8912f;
+  --accent-2: #e0655f;
+  --accent-wash: #e8912f1f;
+  --accent-wash-2: #e8912f14;
+  --on-accent: #1d0f04;
+  --tag-m-bg: #e0655f26;
+  --tag-m-fg: #f2a09b;
+  --tag-f-bg: #7fb2d926;
+  --tag-f-fg: #a9d2ee;
+  --danger: #ef6a6a;
+  --ok: #6bbf7f;
+  --radius: 6px;
+}

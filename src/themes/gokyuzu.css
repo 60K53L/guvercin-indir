@@ -1,0 +1,25 @@
+/* TEMA: GÖKYÜZÜ — derin mavi zemin, camgöbeği vurgu, geniş yuvarlak köşeler.
+   Sakin ve modern; panolar arası geçişte yumuşak. */
+:root {
+  --bg: #0d1220;
+  --panel: #141c2e;
+  --panel-2: #1c2740;
+  --line: #2a3752;
+  --line-strong: #3b4c6e;
+  --hover: #ffffff10;
+  --wash: #ffffff0c;
+  --text: #e6ecf7;
+  --muted: #93a2bd;
+  --accent: #4aa8e0;
+  --accent-2: #8fb4ff;
+  --accent-wash: #4aa8e021;
+  --accent-wash-2: #4aa8e014;
+  --on-accent: #041726;
+  --tag-m-bg: #8fb4ff26;
+  --tag-m-fg: #b3caff;
+  --tag-f-bg: #e79ad126;
+  --tag-f-fg: #f3bada;
+  --danger: #e4707a;
+  --ok: #58bd86;
+  --radius: 16px;
+}

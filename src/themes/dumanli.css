@@ -1,0 +1,24 @@
+/* TEMA: DUMANLI — güvercin tüyü antrasit zemin, asil safir ve platin vurgu */
+:root {
+  --bg: #0f1217;
+  --panel: #181c24;
+  --panel-2: #212631;
+  --line: #333a48;
+  --line-strong: #475165;
+  --hover: #ffffff0e;
+  --wash: #ffffff0a;
+  --text: #f0f2f5;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-2: #818cf8;
+  --accent-wash: #38bdf81a;
+  --accent-wash-2: #38bdf812;
+  --on-accent: #0f172a;
+  --tag-m-bg: #38bdf822;
+  --tag-m-fg: #7dd3fc;
+  --tag-f-bg: #f472b622;
+  --tag-f-fg: #f9a8d4;
+  --danger: #f87171;
+  --ok: #4ade80;
+  --radius: 12px;
+}

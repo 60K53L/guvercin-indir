@@ -1,0 +1,25 @@
+/* TEMA: LACİVERT — koyu lacivert zemin, altın vurgu.
+   Uygulamanın varsayılan görünümü. Diğerleri: zumrut, aydinlik, kizil, gokyuzu. */
+:root {
+  --bg: #14161c;
+  --panel: #1c1f27;
+  --panel-2: #232733;
+  --line: #3b4252;
+  --line-strong: #454d5e;
+  --hover: #ffffff0d;
+  --wash: #ffffff0a;
+  --text: #e8eaf0;
+  --muted: #9aa3b2;
+  --accent: #c9a227;
+  --accent-2: #7c9cf5;
+  --accent-wash: #c9a22718;
+  --accent-wash-2: #c9a22712;
+  --on-accent: #1a1a1a;
+  --tag-m-bg: #7c9cf522;
+  --tag-m-fg: #9db6ff;
+  --tag-f-bg: #e29bcf22;
+  --tag-f-fg: #f0a9dd;
+  --danger: #e06c75;
+  --ok: #57b87a;
+  --radius: 10px;
+}

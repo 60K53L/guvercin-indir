@@ -1,0 +1,106 @@
+{
+  "name": "guvercin",
+  "version": "1.0.44",
+  "description": "Güvercin soy takip ve üreme yönetimi",
+  "main": "electron/main.js",
+  "author": "Güvercin",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build:renderer": "vite build",
+    "start": "electron .",
+    "dist": "node scripts/live-android.js --cleanup && vite build && electron-builder --win --x64 && node scripts/stamp-exe.js",
+    "test": "node scripts/test-data.mjs && node scripts/test-coops.mjs && node scripts/test-sort.mjs && node scripts/test-search.mjs && node scripts/check-turkish-rules.js && node scripts/check-option-caps.js && node scripts/check-ring-contrast.js && node scripts/check-display-case.js && node scripts/test-version-bump.js",
+    "test:electron": "electron scripts/test-turkce.js && electron scripts/test-yavru.js && electron scripts/smoke.js",
+    "scan:unused": "node scripts/scan-unused.js",
+    "web:build": "vite build --config vite.web.config.js",
+    "web:dev": "vite --config vite.web.config.js --port 5174",
+    "backup:source": "node scripts/backup-source.js",
+    "backup:release": "node scripts/github-backup.js",
+    "backup:github": "npm run web:backup && npm run backup:source && npm run backup:release",
+    "ota": "node scripts/publish-ota.js",
+    "ota:deploy": "node scripts/publish-ota.js",
+    "web:publish": "node scripts/publish-ota.js --keep-build-time",
+    "web:backup": "npm run web:build && node scripts/backup-web.js",
+    "web:deploy": "npm run web:build && node scripts/backup-web.js && firebase deploy --only hosting",
+    "web:icons": "node scripts/make-web-icons.js",
+    "dev:android": "node scripts/live-android.js",
+    "mobile:sync": "node scripts/sync-android.js",
+    "mobile:build": "node scripts/live-android.js --cleanup && npm run build:renderer && npm run mobile:sync && cd android && gradlew assembleDebug",
+    "mobile:apk": "npm run mobile:build && node scripts/stamp-apk.js",
+    "mobile:temalar": "node scripts/build-themes.js",
+    "mobile:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/camera": "^8.2.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
+    "@capawesome/capacitor-file-picker": "^8.1.0",
+    "@capgo/capacitor-updater": "^8.53.0",
+    "firebase": "^12.19.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "archiver": "^5.3.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "firebase-tools": "^15.33.0",
+    "rcedit": "^5.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.guvercin.soy",
+    "productName": "Güvercin",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "afterPack": "scripts/after-pack.js",
+    "files": [
+      "app/**/*",
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Güvercin"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "esbuild@0.25.12": true
+  }
+}

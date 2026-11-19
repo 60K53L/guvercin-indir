@@ -1,0 +1,26 @@
+/* TEMA: AYDINLIK — krem beyaz zemin, kahve vurgu.
+   Güneş altında/aydınlık ortamda okunabilirlik için. Tüm yüzeyler açık,
+   çerçeveler koyu tonda ki kart sınırları görünsün. */
+:root {
+  --bg: #f2efe7;
+  --panel: #ffffff;
+  --panel-2: #e9e4d8;
+  --line: #d3cbb9;
+  --line-strong: #b3a88f;
+  --hover: #0000000a;
+  --wash: #00000008;
+  --text: #221e17;
+  --muted: #6b6153;
+  --accent: #8a5a24;
+  --accent-2: #3a6a9e;
+  --accent-wash: #8a5a241f;
+  --accent-wash-2: #8a5a2412;
+  --on-accent: #ffffff;
+  --tag-m-bg: #3a6a9e26;
+  --tag-m-fg: #2c5680;
+  --tag-f-bg: #a64d8626;
+  --tag-f-fg: #8a3d6c;
+  --danger: #ab3030;
+  --ok: #35704a;
+  --radius: 10px;
+}

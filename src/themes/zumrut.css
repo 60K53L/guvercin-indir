@@ -1,0 +1,25 @@
+/* TEMA: ZÜMRÜT — koyu yeşil-siyah zemin, turkuaz vurgu, daha yuvarlak köşeler.
+   Gece/yarı karanlık kullanımı için; mavi tonlu altın yerine soğuk yeşil. */
+:root {
+  --bg: #0e1512;
+  --panel: #16201c;
+  --panel-2: #1e2a25;
+  --line: #2d3d36;
+  --line-strong: #3c5248;
+  --hover: #ffffff0e;
+  --wash: #ffffff0a;
+  --text: #e6efe9;
+  --muted: #93a89c;
+  --accent: #3fbf8f;
+  --accent-2: #79c4e8;
+  --accent-wash: #3fbf8f1f;
+  --accent-wash-2: #3fbf8f14;
+  --on-accent: #07201a;
+  --tag-m-bg: #79c4e526;
+  --tag-m-fg: #9ed6f0;
+  --tag-f-bg: #e88fc226;
+  --tag-f-fg: #f5b3dd;
+  --danger: #e2727b;
+  --ok: #5fce8a;
+  --radius: 14px;
+}
