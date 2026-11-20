@@ -3,7 +3,7 @@ import {
   SEX, ringOf, relationshipCoefficient, kinshipPct, trUpper, isFormer,
   relationLabel, isGone, statusOptionsAlpha, parentCompare, sharedOffspring,
   compareBirds, sortTr, isDualCode, trSearch, footCode, footNumber, dispTr,
-  EXTERNAL_PARENT_STATUS, normalizeExternalParent
+  EXTERNAL_PARENT_STATUS, normalizeExternalParent, extractAllRingCodes
 } from '../lib.js'
 import { normalizeBird } from '../schema.js'
 import { birdInCoop, coopCinsiList, coopList, fallbackCoopId, findCoopRingDuplicate, resolveBirdCoopId, sortCinsi } from '../coops.js'
@@ -457,17 +457,7 @@ export default function BirdForm({
   }, [db.birds, f, selectedMate])
 
   const allKlipsCodes = useMemo(() => {
-    const fromBirds = (db.birds || []).flatMap(b => [b.code, b.leftCode, b.rightCode]).filter(Boolean)
-    return sortTr([
-      ...new Set([
-        ...fromBirds,
-        ...(db.settings?.codes || []),
-        ...(db.settings?.singleCodes || []),
-        ...(db.settings?.dualCodes || []),
-        ...(db.settings?.rightCodes || []),
-        ...(db.settings?.leftCodes || [])
-      ])
-    ])
+    return extractAllRingCodes(db).allCodes
   }, [db.birds, db.settings?.codes, db.settings?.singleCodes, db.settings?.dualCodes, db.settings?.rightCodes, db.settings?.leftCodes])
 
   const handleKlipsCodesChange = (nextCodes) => {

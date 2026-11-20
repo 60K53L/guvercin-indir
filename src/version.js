@@ -1,5 +1,5 @@
-export const APP_VERSION = '1.0.56'
-export const BUILD_TIME = '20261120-1251'
+export const APP_VERSION = '1.0.57'
+export const BUILD_TIME = '20261120-1635'
 
 /**
  * Herkese açık indirme bağlantıları.
@@ -25,6 +25,11 @@ export const APK_DOWNLOAD_URL =
  * SADECE o sürümün yeniliklerini ekle.
  */
 export const CHANGELOG = {
+  '1.0.57': [
+    "AYARLAR MENÜSÜNDEKİ KLİPS LİSTESİ İLE GÜVERCİN EKLEME EKRANINDAKİ KLİPS SEÇİCİLERİ TAMAMEN EŞİTLENDİ",
+    "GÜVERCİNLERİN ÜZERİNDEKİ VEYA ELLE EKLENMİŞ TÜM RENKLER (BEJ, GRİ-BEYAZ VB.) HEM AYARLARDA HEM SEÇİCİLERDE ANINDA GÖRÜNTÜLENİYOR",
+    "ÇİFT RENK OLUŞTURUCU PALETİNE 'GRİ' VE 'BEJ' RENK SEÇENEKLERİ EKLENDİ"
+  ],
   '1.0.56': [
     "GÜVERCİN KARTINDAKİ 'MEVCUT EŞ' SATIRI KALDIRILDI"
   ],

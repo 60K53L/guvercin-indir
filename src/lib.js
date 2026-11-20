@@ -244,7 +244,8 @@ export const trSearch = s => foldTr(s).replace(/\s+/g, ' ').trim()
 
 export const PRIMARY_RING_COLORS = [
   'BEYAZ', 'SARI', 'KIRMIZI', 'MAVİ', 'SİYAH', 'YEŞİL',
-  'TURUNCU', 'PEMBE', 'MOR', 'LACİVERT', 'GÜMÜŞ', 'ALTIN'
+  'TURUNCU', 'PEMBE', 'MOR', 'LACİVERT', 'GRİ', 'BEJ',
+  'GÜMÜŞ', 'ALTIN'
 ]
 
 export function ringColor(text) {
@@ -501,6 +502,54 @@ export function findDuplicateDualCodesInList(list) {
     }
   }
   return duplicates
+}
+
+/**
+ * Veritabanındaki tüm kaynaklardan (settings.codes, settings.singleCodes, settings.dualCodes,
+ * settings.rightCodes, settings.leftCodes ve kuşların code/leftCode/rightCode alanlarından)
+ * tek ve çift renk klips kodlarını eksiksiz, tekilleştirilmiş ve sıralı olarak çıkarır.
+ * Ayarlar ekranı ile Güvercin Ekleme/Düzenleme formundaki klips seçicilerinin
+ * birbirine %100 eşit olmasını sağlar.
+ */
+export function extractAllRingCodes(db) {
+  if (!db) return { allCodes: [], singleCodes: [], dualCodes: [] }
+  const fromBirds = (Array.isArray(db.birds) ? db.birds : [])
+    .flatMap(b => [b?.code, b?.leftCode, b?.rightCode])
+    .filter(Boolean)
+  const s = db.settings || {}
+  const rawPool = [
+    ...(Array.isArray(s.codes) ? s.codes : []),
+    ...(Array.isArray(s.singleCodes) ? s.singleCodes : []),
+    ...(Array.isArray(s.dualCodes) ? s.dualCodes : []),
+    ...(Array.isArray(s.rightCodes) ? s.rightCodes : []),
+    ...(Array.isArray(s.leftCodes) ? s.leftCodes : []),
+    ...fromBirds
+  ]
+  const isSpecial = c =>
+    c === 'KLİPSSİZ / TANIMSIZ' || c === 'KLİPSSİZ/TANIMSIZ' ||
+    c === 'KÜNYESİZLER' || c === 'ÖLEN / KAÇTI / SATILDI'
+
+  const cleaned = rawPool
+    .map(c => trUpper(String(c || '').trim()).replace(/\bGRI\b/g, 'GRİ').replace(/\bKLIPS\b/g, 'KLİPS'))
+    .filter(c => c && !isSpecial(c))
+
+  const singles = sortTr([...new Set(cleaned.filter(c => !isDualCode(c)))])
+  const dualsList = cleaned.filter(c => isDualCode(c))
+
+  // Çift renklerde mükerrerliği (ters sıralı olanları) tekilleştir
+  const seenDual = new Set()
+  const uniqueDuals = []
+  for (const d of dualsList) {
+    const k = canonicalDualKey(d)
+    if (k && !seenDual.has(k)) {
+      seenDual.add(k)
+      uniqueDuals.push(d)
+    }
+  }
+  const duals = sortTr(uniqueDuals)
+  const allCodes = sortTr([...new Set([...singles, ...duals])])
+
+  return { allCodes, singleCodes: singles, dualCodes: duals }
 }
 
 export const DEFAULT_MED_CATEGORIES = [

@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { SEX, ringOf, compareBirds, statusLabel, isFormer, sortTr, statusFilterOptions, treatmentStatusLabel, foldTr, isDualCode, footCode, footNumber, dispTr, ringChip, isGone, fmtDate } from '../lib.js'
+import { SEX, ringOf, compareBirds, statusLabel, isFormer, sortTr, statusFilterOptions, treatmentStatusLabel, foldTr, isDualCode, footCode, footNumber, dispTr, ringChip, isGone, fmtDate, extractAllRingCodes } from '../lib.js'
 import { coopMatingBreakdown, resolveBirdCoopId, coopList, sortCinsi } from '../coops.js'
 import { PhotoImg, openPhoto } from './PhotoViewer.jsx'
 import Ring from './Ring.jsx'
@@ -238,13 +238,8 @@ export default function BirdList({ db, allDb, stats, onOpen, onNew, activeCoop }
   // dedi. Çift renk kombinasyonları da dahildir (seçici, "Çift Renkleri
   // Göster" tikine göre listeyi kendisi süzer), Türkçe alfabetik.
   const finderColors = useMemo(() => {
-    const s = db.settings || {}
-    const raw = [
-      ...(s.codes || []), ...(s.singleCodes || []), ...(s.dualCodes || []),
-      ...(s.rightCodes || []), ...(s.leftCodes || [])
-    ].filter(Boolean)
-    return sortTr([...new Set(raw)])
-  }, [db.settings])
+    return extractAllRingCodes(db).allCodes
+  }, [db.settings, db.birds])
 
   const isSearching = Boolean(q.trim()) || Boolean(rightSel) || Boolean(leftSel)
 

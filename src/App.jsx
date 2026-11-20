@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { applyTheme } from './themes.js'
-import { uid, ringOf, sortTr, isFormer, DURUM_ESKI, SEX, statusLabel, setGlobalCodeColors, dispTr } from './lib.js'
+import { uid, ringOf, sortTr, isFormer, DURUM_ESKI, SEX, statusLabel, setGlobalCodeColors, dispTr, extractAllRingCodes, isDualCode } from './lib.js'
 import BirdList from './components/BirdList.jsx'
 import BirdForm from './components/BirdForm.jsx'
 import BirdDetail from './components/BirdDetail.jsx'
@@ -317,14 +317,15 @@ export default function App() {
         if (part.treatments) next.treatments = part.treatments
         if (part.supplements) next.supplements = part.supplements
         if (part.settings || part.birds) {
-          // Başka cihazdan gelen kodlar da hep alfabetik görünsün.
+          // Başka cihazdan gelen kodlar da hep alfabetik ve eksiksiz görünsün.
           const s = { ...cur.settings, ...(part.settings || {}) }
-          const birds = next.birds || []
-          const birdRightCodes = birds.map(b => b.rightCode).filter(Boolean)
-          const birdLeftCodes = birds.map(b => b.leftCode).filter(Boolean)
-          s.rightCodes = sortTr([...new Set([...(s.rightCodes || []), ...birdRightCodes])])
-          s.leftCodes = sortTr([...new Set([...(s.leftCodes || []), ...birdLeftCodes])])
-          s.codes = sortTr([...new Set([...(s.codes || []), ...s.rightCodes, ...s.leftCodes])])
+          const dummyDb = { settings: s, birds: next.birds || [] }
+          const ringData = extractAllRingCodes(dummyDb)
+          s.singleCodes = ringData.singleCodes
+          s.dualCodes = ringData.dualCodes
+          s.codes = ringData.allCodes
+          s.rightCodes = ringData.allCodes
+          s.leftCodes = ringData.allCodes
           if (Array.isArray(s.cinsi)) s.cinsi = sortCinsi(s.cinsi)
           if (s.coopCinsi && typeof s.coopCinsi === 'object') {
             const norm = {}
@@ -635,19 +636,46 @@ const upsertPairing = useCallback(async (p) => {
   const setRightCodes = useCallback(async (codes) => {
     const cur = dbRef.current
     const sorted = sortTr(codes)
-    return saveSettings({ ...cur.settings, rightCodes: sorted, leftCodes: sorted, codes: sorted })
+    const singleCodes = sorted.filter(c => !isDualCode(c))
+    const dualCodes = sorted.filter(c => isDualCode(c))
+    return saveSettings({
+      ...cur.settings,
+      rightCodes: sorted,
+      leftCodes: sorted,
+      codes: sorted,
+      singleCodes,
+      dualCodes
+    })
   }, [saveSettings])
 
   const setLeftCodes = useCallback(async (codes) => {
     const cur = dbRef.current
     const sorted = sortTr(codes)
-    return saveSettings({ ...cur.settings, rightCodes: sorted, leftCodes: sorted, codes: sorted })
+    const singleCodes = sorted.filter(c => !isDualCode(c))
+    const dualCodes = sorted.filter(c => isDualCode(c))
+    return saveSettings({
+      ...cur.settings,
+      rightCodes: sorted,
+      leftCodes: sorted,
+      codes: sorted,
+      singleCodes,
+      dualCodes
+    })
   }, [saveSettings])
 
   const setCodes = useCallback(async (codes) => {
     const cur = dbRef.current
     const sorted = sortTr(codes)
-    return saveSettings({ ...cur.settings, rightCodes: sorted, leftCodes: sorted, codes: sorted })
+    const singleCodes = sorted.filter(c => !isDualCode(c))
+    const dualCodes = sorted.filter(c => isDualCode(c))
+    return saveSettings({
+      ...cur.settings,
+      rightCodes: sorted,
+      leftCodes: sorted,
+      codes: sorted,
+      singleCodes,
+      dualCodes
+    })
   }, [saveSettings])
 
   // Cins listesi KÜMES BAZINDADIR: her kümesin cinsleri kendi altında

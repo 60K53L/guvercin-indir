@@ -1,6 +1,6 @@
 {
   "name": "guvercin",
-  "version": "1.0.56",
+  "version": "1.0.57",
   "description": "Güvercin soy takip ve üreme yönetimi",
   "main": "electron/main.js",
   "author": "Güvercin",

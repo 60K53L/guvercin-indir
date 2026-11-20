@@ -3,7 +3,7 @@
  * gelen veri aynı formata döner, böylece React bileşenleri farkı bilmez.
  */
 import { normalizeThemeId } from './theme-ids.js'
-import { DEFAULT_MED_CATEGORIES, sortTr, normalizeExternalParent, isDualCode } from './lib.js'
+import { DEFAULT_MED_CATEGORIES, sortTr, normalizeExternalParent, isDualCode, extractAllRingCodes } from './lib.js'
 import { defaultCoop, fallbackCoopId, normalizeCoops, sortCinsi } from './coops.js'
 
 export const SCHEMA_VERSION = 2
@@ -27,6 +27,8 @@ export const EMPTY_DB = {
     codes: [],
     rightCodes: [],
     leftCodes: [],
+    singleCodes: [],
+    dualCodes: [],
     cinsi: [],
     coopCinsi: {},
     medicationCategories: [...DEFAULT_MED_CATEGORIES],
@@ -51,6 +53,8 @@ export const emptyDb = () => ({
     codes: [],
     rightCodes: [],
     leftCodes: [],
+    singleCodes: [],
+    dualCodes: [],
     cinsi: [],
     coopCinsi: {},
     medicationCategories: [...DEFAULT_MED_CATEGORIES],
@@ -211,21 +215,15 @@ export function migrate(data) {
     out.birds[i] = normalizeBird(b)
   }
 
-  /* KLİPS LİSTESİ: Kuşların üzerindeki tüm kodlar da listeye dahil edilir.
-     Böylece ayarlardan bağımsız olarak girilmiş klips renkleri (ör. BEJ KLİPS)
-     ayarlarda ve seçicilerde eksiksiz listelenir. */
-  const birdCodes = out.birds.flatMap(b => [b.code, b.leftCode, b.rightCode]).filter(Boolean)
-  if (birdCodes.length) {
-    out.settings.codes = sortTr([...new Set([...out.settings.codes, ...birdCodes])])
-    out.settings.rightCodes = sortTr([...new Set([...out.settings.rightCodes, ...birdCodes])])
-    out.settings.leftCodes = sortTr([...new Set([...out.settings.leftCodes, ...birdCodes])])
-    if (Array.isArray(out.settings.singleCodes)) {
-      out.settings.singleCodes = sortTr([...new Set([...out.settings.singleCodes, ...birdCodes.filter(c => !isDualCode(c))])])
-    }
-    if (Array.isArray(out.settings.dualCodes)) {
-      out.settings.dualCodes = sortTr([...new Set([...out.settings.dualCodes, ...birdCodes.filter(c => isDualCode(c))])])
-    }
-  }
+  /* KLİPS LİSTESİ: Kuşların üzerindeki tüm kodlar ve ayarlardaki kodlar
+     (BEJ, GRİ-BEYAZ vb.) eksiksiz birleştirilir; tek ve çift renkler
+     hem ayarlarda hem kuş seçicilerinde %100 eşit ve eksiksiz listelenir. */
+  const ringData = extractAllRingCodes(out)
+  out.settings.singleCodes = ringData.singleCodes
+  out.settings.dualCodes = ringData.dualCodes
+  out.settings.codes = ringData.allCodes
+  out.settings.rightCodes = ringData.allCodes
+  out.settings.leftCodes = ringData.allCodes
 
   /* CİNS LİSTESİ KÜMES BAZINDA TUTULUR.
      Eski tek ortak liste (`settings.cinsi`) artık kümelere dağıtılmaz;

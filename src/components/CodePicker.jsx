@@ -87,8 +87,11 @@ const backdropRef = useRef(null)
   }, [listOpen, isColor, value, dualMode])
 
   function add() {
-    const c = trUpper(draft.trim())
+    let c = trUpper(draft.trim())
     if (!c) return
+    if (isColor) {
+      c = c.replace(/\\bGRI\\b/g, 'GRİ').replace(/\\bKLIPS\\b/g, 'KLİPS')
+    }
     if (isColor && isDualCode(c)) {
       const dup = findDualColorDuplicate(c, codes)
       if (dup) {

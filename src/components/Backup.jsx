@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { sortTr, trUpper, isFormer, isGone, ringColor, isDualCode, findDuplicateDualCodesInList, DEFAULT_MED_CATEGORIES, dispTr } from '../lib.js'
+import { sortTr, trUpper, isFormer, isGone, ringColor, isDualCode, findDuplicateDualCodesInList, DEFAULT_MED_CATEGORIES, dispTr, extractAllRingCodes } from '../lib.js'
 import Ring from './Ring.jsx'
 import { THEMES, DEFAULT_THEME, previewTheme } from '../themes.js'
 import {
@@ -14,19 +14,11 @@ import { getCurrentVersionInfo, checkForUpdate } from '../updater.js'
 
 export default function Backup({ db, account, activeCoopId, onSaveSettings, onNotify, onSignOut, onOpenActivityLog, activitiesCount = 0, onResetLoftChecks, onOpenUpdate, onDeleteCoop }) {
   const getInitialSingleCodes = () => {
-    if (db.settings?.singleCodes && Array.isArray(db.settings.singleCodes)) {
-      return db.settings.singleCodes.join(', ')
-    }
-    const all = sortTr([...new Set([...(db.settings?.rightCodes || []), ...(db.settings?.leftCodes || []), ...(db.settings?.codes || [])])])
-    return all.filter(c => !isDualCode(c)).join(', ')
+    return extractAllRingCodes(db).singleCodes.join(', ')
   }
 
   const getInitialDualCodes = () => {
-    if (db.settings?.dualCodes && Array.isArray(db.settings.dualCodes)) {
-      return db.settings.dualCodes.join(', ')
-    }
-    const all = sortTr([...new Set([...(db.settings?.rightCodes || []), ...(db.settings?.leftCodes || []), ...(db.settings?.codes || [])])])
-    return all.filter(c => isDualCode(c)).join(', ')
+    return extractAllRingCodes(db).dualCodes.join(', ')
   }
 
   const [singleCodes, setSingleCodes] = useState(getInitialSingleCodes)
@@ -118,21 +110,22 @@ export default function Backup({ db, account, activeCoopId, onSaveSettings, onNo
     api.userDataPath().then(r => r.ok && setDataPath(r.data))
   }, [])
 
+  const dbCodes = useMemo(() => extractAllRingCodes(db), [
+    db.settings?.singleCodes,
+    db.settings?.dualCodes,
+    db.settings?.codes,
+    db.settings?.rightCodes,
+    db.settings?.leftCodes,
+    db.birds
+  ])
+
   const dbSingleCodes = useMemo(() => {
-    if (db.settings?.singleCodes && Array.isArray(db.settings.singleCodes)) {
-      return db.settings.singleCodes.join(', ')
-    }
-    const all = sortTr([...new Set([...(db.settings?.rightCodes || []), ...(db.settings?.leftCodes || []), ...(db.settings?.codes || [])])])
-    return all.filter(c => !isDualCode(c)).join(', ')
-  }, [db.settings?.singleCodes, db.settings?.codes, db.settings?.rightCodes, db.settings?.leftCodes])
+    return dbCodes.singleCodes.join(', ')
+  }, [dbCodes])
 
   const dbDualCodes = useMemo(() => {
-    if (db.settings?.dualCodes && Array.isArray(db.settings.dualCodes)) {
-      return db.settings.dualCodes.join(', ')
-    }
-    const all = sortTr([...new Set([...(db.settings?.rightCodes || []), ...(db.settings?.leftCodes || []), ...(db.settings?.codes || [])])])
-    return all.filter(c => isDualCode(c)).join(', ')
-  }, [db.settings?.dualCodes, db.settings?.codes, db.settings?.rightCodes, db.settings?.leftCodes])
+    return dbCodes.dualCodes.join(', ')
+  }, [dbCodes])
 
   const coopsForCinsi = useMemo(
     () => coopList(db),
