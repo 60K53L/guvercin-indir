@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import {
   byId, ringOf, fmtDate, SEX, statusLabel,
-  clutchTimeline, todayIso, addDays, compareBirds, trUpper, uid, trSearch, dispTr
+  clutchTimeline, todayIso, addDays, compareBirds, trUpper, uid, trSearch, dispTr,
+  calculateClutchFromHatch
 } from '../lib.js'
 import Ring from './Ring.jsx'
 import BirdPicker from './BirdPicker.jsx'
@@ -500,7 +501,10 @@ export default function Incubation({
                             gap: 2,
                             borderRadius: 6
                           }}
-                          onClick={() => handleQuickStatus(c, 'hatched', { hatchDate: todayIso(), chickCount: 1 })}
+                          onClick={() => {
+                            const h = calculateClutchFromHatch(todayIso(), 1)
+                            handleQuickStatus(c, 'hatched', { hatchDate: h.hatchDate, chickCount: 1, egg1Date: h.egg1Date, egg2Date: h.egg2Date })
+                          }}
                           title={dispTr('1 Yavru Çıktı')}
                         >
                           <span style={{ fontSize: 13 }}>🐣</span>
@@ -526,7 +530,10 @@ export default function Incubation({
                             gap: 2,
                             borderRadius: 6
                           }}
-                          onClick={() => handleQuickStatus(c, 'hatched', { hatchDate: todayIso(), chickCount: 2 })}
+                          onClick={() => {
+                            const h = calculateClutchFromHatch(todayIso(), 2)
+                            handleQuickStatus(c, 'hatched', { hatchDate: h.hatchDate, chickCount: 2, egg1Date: h.egg1Date, egg2Date: h.egg2Date })
+                          }}
                           title={dispTr('2 Yavru Çıktı')}
                         >
                           <span style={{ fontSize: 13 }}>🐣</span>
@@ -605,7 +612,8 @@ export default function Incubation({
                         onClick={() => onNewChick({
                           damId: c.femaleId,
                           sireId: c.maleId,
-                          birthDate: c.hatchDate || tl?.effectiveHatch || todayIso()
+                          birthDate: c.hatchDate || tl?.effectiveHatch || todayIso(),
+                          nest: c.nest
                         })}
                       >
                         {dispTr('+ Bu Yuvadan Yavru Kuş Kaydet')}
@@ -810,13 +818,12 @@ function ClutchModal({ initial, activePairings, birds, onSave, onCancel }) {
         <form onSubmit={handleSubmit}>
           {/* Folluk No */}
           <div className="field">
-            <label>{dispTr('Folluk / Yuvalık No')}</label>
+            <label>{dispTr('Folluk / Yuvalık No (İsteğe bağlı)')}</label>
             <input
               type="text"
               placeholder={dispTr('Örn: Folluk 1, Yuva 3, Dolap 2...')}
               value={nest}
               onChange={e => setNest(e.target.value)}
-              required
             />
           </div>
 
@@ -859,6 +866,78 @@ function ClutchModal({ initial, activePairings, birds, onSave, onCancel }) {
                 placeholder={dispTr('-- SEÇİNİZ --')}
                 clearLabel={dispTr('— Seçimi Kaldır —')}
               />
+            </div>
+          </div>
+
+          {/* Hızlı Çıkım Girişi (Yumurta Günü Bilinmiyorsa) */}
+          <div style={{
+            background: 'var(--panel-2)',
+            border: '1px solid var(--line)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            marginBottom: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+                {dispTr('🐣 Hızlı Çıkım Girişi (Yumurta Günü Bilinmiyorsa)')}
+              </span>
+              <span className="muted" style={{ fontSize: 11 }}>
+                {dispTr('Geriye dönük 18-20 gün hesaplanır')}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button
+                type="button"
+                className="btn small"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  padding: '6px 8px',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  borderRadius: 6
+                }}
+                onClick={() => {
+                  const effectiveHatch = hatchDate || todayIso()
+                  const res = calculateClutchFromHatch(effectiveHatch, 1)
+                  setEgg1Date(res.egg1Date)
+                  setEgg2Date(res.egg2Date)
+                  setStatus('hatched')
+                  setChickCount(1)
+                  setHatchDate(effectiveHatch)
+                }}
+                title={dispTr('Bugün 1. yavru çıktı olarak işaretle ve yumurta tarihlerini geriye hesapla')}
+              >
+                <span>🐣</span> {dispTr('1. Yavru Çıktı')}
+              </button>
+              <button
+                type="button"
+                className="btn small primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  padding: '6px 8px',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  borderRadius: 6
+                }}
+                onClick={() => {
+                  const effectiveHatch = hatchDate || todayIso()
+                  const res = calculateClutchFromHatch(effectiveHatch, 2)
+                  setEgg1Date(res.egg1Date)
+                  setEgg2Date(res.egg2Date)
+                  setStatus('hatched')
+                  setChickCount(2)
+                  setHatchDate(effectiveHatch)
+                }}
+                title={dispTr('Bugün 2. yavru çıktı olarak işaretle ve yumurta tarihlerini geriye hesapla')}
+              >
+                <span>🐣</span> {dispTr('2. Yavru Çıktı')}
+              </button>
             </div>
           </div>
 
@@ -912,7 +991,15 @@ function ClutchModal({ initial, activePairings, birds, onSave, onCancel }) {
                   <input
                     type="date"
                     value={hatchDate || todayIso()}
-                    onChange={e => setHatchDate(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value
+                      setHatchDate(val)
+                      if (val) {
+                        const res = calculateClutchFromHatch(val, chickCount)
+                        setEgg1Date(res.egg1Date)
+                        setEgg2Date(res.egg2Date)
+                      }
+                    }}
                   />
                 </div>
               </>

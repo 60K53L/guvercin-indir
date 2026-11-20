@@ -39,9 +39,11 @@ export default function BirdForm({
 
   const [f, setF] = useState(() => {
     const norm = normalizeBird(bird)
+    const isChick = norm?.status === 'yavru' || norm?.sex === '?'
     return {
       ...blank,
       ...norm,
+      line: norm?.line || (isChick ? 'BİZİM YAVRU' : ''),
       coopId: norm?.coopId ? resolveBirdCoopId(norm, coopOptions) : defaultCoopId,
       rightCode: norm?.rightCode || '',
       leftCode: norm?.leftCode || '',
@@ -72,6 +74,36 @@ export default function BirdForm({
   const overlayRef = useRef(null)
   const modalRef = useRef(null)
 
+  // Mobil klavye açıldığında odaklanılan input'un (ör. Hat/Soy, Ad, Notlar)
+  // klavye altında kalmayıp ekranın merkezine rahatça kayması için scroll desteği
+  const handleFormFocus = useCallback((e) => {
+    const el = e.target
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+      setTimeout(() => {
+        try {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        } catch {}
+      }, 160)
+    }
+  }, [])
+
+  useEffect(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) return
+    const onResize = () => {
+      const active = document.activeElement
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        setTimeout(() => {
+          try {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          } catch {}
+        }, 80)
+      }
+    }
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [])
+
   useEffect(() => {
     const resetScroll = () => {
       if (modalRef.current) modalRef.current.scrollTop = 0
@@ -87,9 +119,26 @@ export default function BirdForm({
     }
   }, [])
 
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const preserveCursor = (el, start, end) => {
+    if (!el || start === null || end === null || typeof el.setSelectionRange !== 'function') return
+    const restore = () => {
+      try { el.setSelectionRange(start, end) } catch {}
+    }
+    queueMicrotask(restore)
+    requestAnimationFrame(restore)
+    setTimeout(restore, 0)
+  }
+
+  const set = (k) => (e) => setF(prev => ({ ...prev, [k]: e.target.value }))
   // trUpper: Türkçe locale. toUpperCase() "dişi" → "DIŞI" yapıyordu.
-  const setUpper = (k) => (e) => setF({ ...f, [k]: trUpper(e.target.value) })
+  const setUpper = (k) => (e) => {
+    const el = e.target
+    const start = el?.selectionStart ?? null
+    const end = el?.selectionEnd ?? null
+    const val = trUpper(e.target.value)
+    setF(prev => ({ ...prev, [k]: val }))
+    preserveCursor(el, start, end)
+  }
   const up = (v) => trUpper(v)
 
   /**
@@ -109,23 +158,32 @@ export default function BirdForm({
     })
   }
 
-  const setParentOutsideNote = (which, note) => {
+  const setParentOutsideNote = (which, note, el) => {
+    const start = el?.selectionStart ?? null
+    const end = el?.selectionEnd ?? null
     const outKey = which === 'sire' ? 'sireOutside' : 'damOutside'
     setF(prev => ({
       ...prev,
       [outKey]: { status: prev[outKey]?.status || '', note: trUpper(note) }
     }))
+    preserveCursor(el, start, end)
   }
 
   const setParentBird = (which, id) => {
     const idKey = which === 'sire' ? 'sireId' : 'damId'
+    const parent = db.birds.find(b => b.id === id)
     const outKey = which === 'sire' ? 'sireOutside' : 'damOutside'
-    setF(prev => ({
-      ...prev,
-      [idKey]: id,
-      // Gerçek kuş seçildiğinde veya seçim kaldırıldığında kayıt dışı bilgi temizlenir.
-      [outKey]: null
-    }))
+    setF(prev => {
+      const autoCinsi = (!prev.cinsi && parent?.cinsi) ? parent.cinsi : prev.cinsi
+      const autoLine = (!prev.line && parent?.line) ? parent.line : prev.line
+      return {
+        ...prev,
+        [idKey]: id,
+        [outKey]: null,
+        cinsi: autoCinsi,
+        line: autoLine
+      }
+    })
   }
 
   function submit(e) {
@@ -144,8 +202,24 @@ export default function BirdForm({
     const code = (mainLeft ? (leftCode || rightCode) : (rightCode || leftCode)) || trUpper((f.code || '').trim())
     const number = mainLeft ? (leftNumber || rightNumber) : (rightNumber || leftNumber)
 
-    if (!code && !number && !(f.name || '').trim() && !fedRing) {
-      return setErr('En az bir bilgi girin: Klips Rengi, Numara, Ad veya Federasyon Markası')
+    let finalName = up(f.name).trim()
+    if (!code && !number && !finalName && !fedRing) {
+      if (f.status !== 'yavru') {
+        return setErr('En az bir bilgi girin: Klips Rengi, Numara, Ad veya Federasyon Markası')
+      } else {
+        const damBird = db.birds.find(b => b.id === f.damId)
+        const sireBird = db.birds.find(b => b.id === f.sireId)
+        if (f.nestHint) {
+          finalName = `YAVRU (${f.nestHint})`
+        } else if (damBird && sireBird) {
+          finalName = `YAVRU (${ringOf(damBird)} × ${ringOf(sireBird)})`
+        } else if (damBird || sireBird) {
+          finalName = `${ringOf(damBird || sireBird)} YAVRUSU`
+        } else {
+          const count = (db.birds || []).filter(b => b.status === 'yavru').length
+          finalName = `YAVRU #${count + 1}`
+        }
+      }
     }
 
     // Aynı ayak + aynı renk + aynı numara, AYNI KÜMESTE ve aynı cinsiyette
@@ -190,7 +264,7 @@ export default function BirdForm({
       strain: up(f.strain || '').trim(),
       raceResults: (f.raceResults || '').trim(),
       cinsi: up(f.cinsi).trim(),
-      name: up(f.name).trim(),
+      name: finalName,
       color: up(f.color).trim(),
       line: up(f.line).trim(),
       notes: up(f.notes).trim(),
@@ -332,11 +406,17 @@ export default function BirdForm({
   }, [bySex, matedIds, hasCurrentMate, currentMateId, effectiveMateId, db.birds])
   const hiddenMated = hasCurrentMate ? 0 : bySex.length - mateCandidates.length
 
-  // Anne/baba listeleri: kuşun künye kodu girildiğinde O KODUN GC kuşları
-  // en üste çıkar. MOR KLİPS-01..05'in anne/babası MOR KLİPS GC'dir;
-  // yeni MOR KLİPS kaydederken aşağı kaydırmaya gerek kalmasın.
-  const anneSirala = useMemo(() => parentCompare(f.code), [f.code])
-  const babaSirala = useMemo(() => parentCompare(f.code), [f.code])
+  // Anne/baba listeleri: yavru veya kuş için sol/sağ ayak klips rengi seçildiğinde
+  // o klips rengine ait anne/babalar ve GC damızlıkları en üste çıkar.
+  const targetKlipsCodes = useMemo(() => {
+    const list = [f.leftCode, f.rightCode, f.code]
+      .filter(Boolean)
+      .map(k => String(k).trim())
+    return [...new Set(list)]
+  }, [f.leftCode, f.rightCode, f.code])
+
+  const anneSirala = useMemo(() => parentCompare(targetKlipsCodes), [targetKlipsCodes])
+  const babaSirala = useMemo(() => parentCompare(targetKlipsCodes), [targetKlipsCodes])
 
   // Mevcut ebeveyn başka kümesdeyse de seçili kalabilsin: aday listesine
   // eklenir; böylece form "BİLİNMİYOR" göstermez ve kayıt bağı kopmaz.
@@ -377,8 +457,10 @@ export default function BirdForm({
   }, [db.birds, f, selectedMate])
 
   const allKlipsCodes = useMemo(() => {
+    const fromBirds = (db.birds || []).flatMap(b => [b.code, b.leftCode, b.rightCode]).filter(Boolean)
     return sortTr([
       ...new Set([
+        ...fromBirds,
         ...(db.settings?.codes || []),
         ...(db.settings?.singleCodes || []),
         ...(db.settings?.dualCodes || []),
@@ -386,7 +468,7 @@ export default function BirdForm({
         ...(db.settings?.leftCodes || [])
       ])
     ])
-  }, [db.settings?.codes, db.settings?.singleCodes, db.settings?.dualCodes, db.settings?.rightCodes, db.settings?.leftCodes])
+  }, [db.birds, db.settings?.codes, db.settings?.singleCodes, db.settings?.dualCodes, db.settings?.rightCodes, db.settings?.leftCodes])
 
   const handleKlipsCodesChange = (nextCodes) => {
     if (onRightCodesChange) onRightCodesChange(nextCodes)
@@ -401,7 +483,7 @@ export default function BirdForm({
       onMouseDown={e => e.target === e.currentTarget && onCancel()}
       onClick={e => e.target === e.currentTarget && onCancel()}
     >
-      <form ref={modalRef} className="modal" onSubmit={submit}>
+      <form ref={modalRef} className="modal" onSubmit={submit} onFocusCapture={handleFormFocus} style={{ scrollPadding: '70px 0 280px 0' }}>
         <div className="modal-head" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <h2 style={{
             margin: 0,
@@ -422,22 +504,24 @@ export default function BirdForm({
         {err && <p className="hint" style={{ color: 'var(--danger)' }}>{dispTr(err)}</p>}
 
         <div className="form-grid">
-          {/* KÜMES: kuşun hangi fiziksel bölmede olduğu. Yeni kuşta aktif
-              kümes varsayılan gelir; "Tümü" görünümünde ilk kümes seçilir. */}
-          <div className="field wide">
-            <label style={{ textAlign: 'center', display: 'block' }}>{dispTr('Kümes')}</label>
-            <select
-              value={f.coopId || defaultCoopId}
-              onChange={e => setF({ ...f, coopId: e.target.value })}
-            >
-              {coopOptions.map(coop => (
-                <option key={coop.id} value={coop.id}>{dispTr(coop.name)}</option>
-              ))}
-            </select>
-            <div className="field-hint" style={{ textAlign: 'center' }}>
-              {dispTr('Kuş bu kümeste listelenir. Kümes değiştirilirse kuş yeni kümese taşınır; eş, yavru ve ebeveyn bağları korunur.')}
+          {/* KÜMES: Yeni kuş eklerken tepede kümes seçimi gösterilmez (kullanıcı zaten üst menüden kümese girmiştir).
+              Yalnızca mevcut kuş düzenlenirken kümesler arası taşıma için gösterilir. */}
+          {!isNew && coopOptions.length > 1 && (
+            <div className="field wide">
+              <label style={{ textAlign: 'center', display: 'block' }}>{dispTr('Kümes')}</label>
+              <select
+                value={f.coopId || defaultCoopId}
+                onChange={e => setF({ ...f, coopId: e.target.value })}
+              >
+                {coopOptions.map(coop => (
+                  <option key={coop.id} value={coop.id}>{dispTr(coop.name)}</option>
+                ))}
+              </select>
+              <div className="field-hint" style={{ textAlign: 'center' }}>
+                {dispTr('Kuş bu kümeste listelenir. Kümes değiştirilirse kuş yeni kümese taşınır; eş, yavru ve ebeveyn bağları korunur.')}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* KLİPS RENGİ KARTI */}
           <div className="field wide" style={{
@@ -628,8 +712,21 @@ export default function BirdForm({
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
               <div className="field" style={{ margin: 0, minWidth: 0 }}>
-                <select value={f.sex} onChange={set('sex')}>
-                  <option value="">{dispTr('SEÇ')}</option>
+                <select
+                  value={f.sex === '?' || (f.status === 'yavru' && !f.sex) ? '?' : f.sex}
+                  onChange={e => {
+                    const val = e.target.value
+                    if (val === '?') {
+                      setF({ ...f, sex: '?', status: 'yavru', line: f.line || 'BİZİM YAVRU' })
+                    } else if (val === 'M' || val === 'F') {
+                      setF({ ...f, sex: val })
+                    } else {
+                      setF({ ...f, sex: '' })
+                    }
+                  }}
+                >
+                  <option value="">{dispTr('SEÇ (BELLİ DEĞİL)')}</option>
+                  <option value="?">{dispTr('🐣 YAVRU (CİNSİYET HENÜZ BELLİ DEĞİL)')}</option>
                   <option value="M">{dispTr(SEX.M)}</option>
                   <option value="F">{dispTr(SEX.F)}</option>
                 </select>
@@ -674,7 +771,7 @@ export default function BirdForm({
                 {f.damOutside?.status && (
                   <input
                     value={f.damOutside.note || ''}
-                    onChange={e => setParentOutsideNote('dam', e.target.value)}
+                    onChange={e => setParentOutsideNote('dam', e.target.value, e.target)}
                     placeholder={dispTr('Anne bilgisi (Örn. AÇIK SARI BOZALI)')}
                     style={{ marginTop: 6, fontSize: 12 }}
                   />
@@ -702,7 +799,7 @@ export default function BirdForm({
                 {f.sireOutside?.status && (
                   <input
                     value={f.sireOutside.note || ''}
-                    onChange={e => setParentOutsideNote('sire', e.target.value)}
+                    onChange={e => setParentOutsideNote('sire', e.target.value, e.target)}
                     placeholder={dispTr('Baba bilgisi (Örn. AÇIK SARI BOZALI)')}
                     style={{ marginTop: 6, fontSize: 12 }}
                   />
@@ -753,7 +850,17 @@ export default function BirdForm({
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
               <div className="field" style={{ margin: 0, minWidth: 0 }}>
                 <label style={{ textAlign: 'center', display: 'block' }}>{dispTr('Durum')}</label>
-                <select value={f.status} onChange={set('status')}>
+                <select
+                  value={f.status}
+                  onChange={e => {
+                    const st = e.target.value
+                    if (st === 'yavru') {
+                      setF({ ...f, status: 'yavru', line: f.line || 'BİZİM YAVRU', sex: f.sex || '?' })
+                    } else {
+                      setF({ ...f, status: st })
+                    }
+                  }}
+                >
                   {statusOptionsAlpha().map(s => <option key={s.value} value={s.value}>{dispTr(s.label)}</option>)}
                 </select>
               </div>
@@ -905,7 +1012,7 @@ export default function BirdForm({
             )}
           <div className="field wide">
             <label style={{ textAlign: 'center', display: 'block' }}>{dispTr('Notlar')}</label>
-            <textarea rows={3} value={f.notes} onChange={e => setF({ ...f, notes: trUpper(e.target.value) })} />
+            <textarea rows={3} value={f.notes} onChange={setUpper('notes')} />
           </div>
         </div>
 
@@ -913,6 +1020,8 @@ export default function BirdForm({
           <PhotoBox bird={f} onAdd={addPhotos} onDelete={delPhoto} />
         </div>
 
+        {/* Mobilde klavye açıldığında son kutuların da yukarı kayabilmesi için boşluk payı */}
+        <div style={{ height: 160 }} aria-hidden="true" />
         <div className="form-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
           <button type="submit" className="btn primary" style={{ flexShrink: 0 }}>{dispTr('Kaydet')}</button>
           <button type="button" className="btn" onClick={onCancel} style={{ flexShrink: 0 }}>{dispTr('Vazgeç')}</button>

@@ -29,7 +29,8 @@ export default function ActivityLogModal({ activities, onOpenBird, onClose, onCl
       birds: activities.filter(a => a.type.startsWith('bird')).length,
       clutch: activities.filter(a => a.type.startsWith('clutch') || a.type.startsWith('egg')).length,
       pair: activities.filter(a => a.type.startsWith('pair')).length,
-      med: activities.filter(a => a.type.startsWith('med') || a.type.startsWith('vac')).length,
+      med: activities.filter(a => a.type.startsWith('med') || a.type.startsWith('vac') || a.type.startsWith('treat') || a.type.startsWith('sup')).length,
+      session: activities.filter(a => a.type.startsWith('session')).length,
     }
   }, [activities])
 
@@ -42,7 +43,9 @@ export default function ActivityLogModal({ activities, onOpenBird, onClose, onCl
     } else if (filter === 'pair') {
       list = list.filter(a => a.type.startsWith('pair'))
     } else if (filter === 'med') {
-      list = list.filter(a => a.type.startsWith('med') || a.type.startsWith('vac'))
+      list = list.filter(a => a.type.startsWith('med') || a.type.startsWith('vac') || a.type.startsWith('treat') || a.type.startsWith('sup'))
+    } else if (filter === 'session') {
+      list = list.filter(a => a.type.startsWith('session'))
     }
 
     const q = trSearch(search)
@@ -127,8 +130,17 @@ export default function ActivityLogModal({ activities, onOpenBird, onClose, onCl
               className={`btn small ${filter === 'med' ? 'primary' : ''}`}
               onClick={() => setFilter('med')}
             >
-              {dispTr(`💊 İLAÇ & AŞI (${counts.med})`)}
+              {dispTr(`💊 İLAÇ & TEDAVİ (${counts.med})`)}
             </button>
+            {counts.session > 0 && (
+              <button
+                type="button"
+                className={`btn small ${filter === 'session' ? 'primary' : ''}`}
+                onClick={() => setFilter('session')}
+              >
+                {dispTr(`🔑 GİRİŞLER (${counts.session})`)}
+              </button>
+            )}
           </div>
 
           <input

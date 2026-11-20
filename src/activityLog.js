@@ -2,12 +2,12 @@ import { ringOf, SEX, statusLabel, byId } from './lib.js'
 
 const STORAGE_KEY = 'guvercin_activity_log'
 const CLEARED_KEY = 'guvercin_activity_log_cleared'
-const MAX_ACTIVITIES = 200
+const MAX_ACTIVITIES = 300
 
 /**
  * Yeni bir işlem kaydeder.
  * @param {{
- *   type: 'bird_add' | 'bird_edit' | 'bird_delete' | 'clutch_add' | 'egg_status' | 'pairing_add' | 'pairing_remove' | 'med_add' | 'vac_add' | 'sup_add',
+ *   type: 'bird_add' | 'bird_edit' | 'bird_delete' | 'clutch_add' | 'clutch_edit' | 'egg_status' | 'pairing_add' | 'pairing_remove' | 'med_add' | 'vac_add' | 'treatment_add' | 'sup_add' | 'session_login' | string,
  *   icon?: string,
  *   title: string,
  *   detail?: string,
@@ -41,6 +41,33 @@ export function recordActivity(activity) {
 }
 
 /**
+ * Kullanıcı oturum veya mobil uygulama açılışını throttled olarak kaydeder.
+ * Aynı cihazda 30 dakika içinde birden fazla kez yazmaz.
+ */
+export function recordSessionLogin(platform, appVersion) {
+  const lastKey = 'guvercin:last_session_log_time'
+  try {
+    const last = parseInt(localStorage.getItem(lastKey) || '0', 10)
+    const now = Date.now()
+    if (now - last < 30 * 60 * 1000) return null
+    localStorage.setItem(lastKey, String(now))
+  } catch {}
+
+  const plat = String(platform || '').toLowerCase()
+  const platLabel = plat === 'capacitor' || plat === 'android'
+    ? 'Mobil Uygulama (Android)'
+    : (plat === 'windows' ? 'Masaüstü (Windows)' : 'Web Tarayıcı')
+
+  return recordActivity({
+    type: 'session_login',
+    icon: '🔑',
+    title: 'Uygulamaya Giriş Yapıldı',
+    detail: `${platLabel}${appVersion ? ` · v${appVersion}` : ''}`,
+    time: new Date().toISOString()
+  })
+}
+
+/**
  * Kayıtlı yerel logları okur.
  */
 function getStoredActivities() {
@@ -54,35 +81,50 @@ function getStoredActivities() {
 }
 
 /**
- * Log kayıtlarını döner. Eğer log listesi henüz boşsa,
- * mevcut veritabanındaki (kuşlar, kuluçka yumurtaları, aşılar)
- * geçmiş hareketleri otomatik olarak kronolojik loglara dönüştürür.
+ * Log kayıtlarını döner.
+ * Yerel loglar ile veritabanındaki (kuşlar, kuluçka, eşler, aşı/tedavi)
+ * tüm hareketleri kronolojik olarak birleştirir ve tekilleştirir.
+ * Bu sayede başka cihazdan (ör. mobilden) yapılan değişiklikler de anında görünür.
  */
 export function getAllActivities(db) {
   const stored = getStoredActivities()
-  if (stored.length >= 10) return stored
 
-  /* Kullanıcı listeyi bilinçli olarak temizlediyse sentetik geçmiş yeniden
-   * üretilmez. Eskiden clearActivities() localStorage'ı siliyordu ama
-   * stored < 10 olduğu için bir sonraki açılışta DB'den yeniden log
-   * üretiliyor ve "İşlem logları temizlendi" mesajından hemen sonra liste
-   * doluyordu. */
+  let clearedTime = 0
   try {
-    if (localStorage.getItem(CLEARED_KEY)) return stored
-  } catch { /* özel modda okunamayabilir */ }
+    const rawCleared = localStorage.getItem(CLEARED_KEY)
+    if (rawCleared) {
+      clearedTime = rawCleared === '1' ? 1 : new Date(rawCleared).getTime()
+    }
+  } catch {}
 
-  // Eğer log azsa veya ilk kez açılıyorsa mevcut DB'den sentetik log üretip birleştir
   const synthetic = generateHistoryFromDb(db)
-  
-  // Stored olanları sentetik olanlarla birleştir (aynı ID/title çakışmasını engelle)
-  const combined = [...stored]
-  const titles = new Set(stored.map(s => s.title + '_' + s.time?.slice(0, 10)))
 
-  for (const s of synthetic) {
-    const key = s.title + '_' + s.time?.slice(0, 10)
-    if (!titles.has(key)) {
+  const combined = []
+  const seenKeys = new Set()
+
+  // 1. Önce doğrudan kaydedilen yerel eylemleri al (daha detaylı başlık/açıklama içerebilir)
+  for (const s of stored) {
+    if (!s) continue
+    const sTime = new Date(s.time || 0).getTime()
+    if (clearedTime && sTime <= clearedTime) continue
+    const dateStr = s.time ? s.time.slice(0, 10) : ''
+    const key = `${s.type}_${s.birdId || ''}_${s.title}_${dateStr}`
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key)
       combined.push(s)
-      titles.add(key)
+    }
+  }
+
+  // 2. Ardından bulut veri tabanındaki tüm hareketleri birleştir (farklı cihazdan yapılan işlemler buraya düşer)
+  for (const s of synthetic) {
+    if (!s) continue
+    const sTime = new Date(s.time || 0).getTime()
+    if (clearedTime && sTime <= clearedTime) continue
+    const dateStr = s.time ? s.time.slice(0, 10) : ''
+    const key = `${s.type}_${s.birdId || ''}_${s.title}_${dateStr}`
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key)
+      combined.push(s)
     }
   }
 
@@ -94,9 +136,7 @@ export function getAllActivities(db) {
 export function clearActivities() {
   try {
     localStorage.removeItem(STORAGE_KEY)
-    // Temizlik kalıcı olsun: yoksa getAllActivities() DB'den yeniden
-    // sentetik geçmiş üretip listeyi dolduruyordu.
-    localStorage.setItem(CLEARED_KEY, '1')
+    localStorage.setItem(CLEARED_KEY, new Date().toISOString())
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('guvercin:activity_clear'))
     }
@@ -109,12 +149,15 @@ function getIconForType(type) {
     case 'bird_edit': return '✏️'
     case 'bird_delete': return '🗑️'
     case 'clutch_add': return '🪺'
+    case 'clutch_edit': return '🪺'
     case 'egg_status': return '🥚'
     case 'pairing_add': return '❤️'
     case 'pairing_remove': return '💔'
     case 'med_add': return '💊'
     case 'vac_add': return '💉'
+    case 'treatment_add': return '🩺'
     case 'sup_add': return '🌾'
+    case 'session_login': return '🔑'
     default: return '📋'
   }
 }
@@ -126,14 +169,14 @@ function generateHistoryFromDb(db) {
   if (!db) return []
   const list = []
 
-  // 1. Kuşlar
+  // 1. Kuşlar (Ekleme ve Güncelleme)
   if (Array.isArray(db.birds)) {
     for (const b of db.birds) {
       const ring = ringOf(b)
       const sexLabel = SEX[b.sex] || 'Cinsiyet Belirtilmemiş'
       const stat = statusLabel(b.status)
       const detail = `${sexLabel} · ${stat}${b.cinsi ? ` · ${b.cinsi}` : ''}${b.name ? ` · ${b.name}` : ''}`
-      
+
       if (b.createdAt) {
         list.push({
           id: `seed_bird_add_${b.id}`,
@@ -177,6 +220,17 @@ function generateHistoryFromDb(db) {
         })
       }
 
+      if (c.updatedAt && c.updatedAt !== c.startDate) {
+        list.push({
+          id: `seed_clutch_upd_${c.id}`,
+          type: 'clutch_edit',
+          icon: '🪺',
+          title: `Kuluçka Güncellendi: ${pairText}`,
+          detail: c.notes || (c.nest ? `Yuva: ${c.nest}` : 'Kuluçka güncellendi'),
+          time: c.updatedAt
+        })
+      }
+
       if (Array.isArray(c.eggs)) {
         c.eggs.forEach((egg, idx) => {
           if (!egg) return
@@ -202,7 +256,26 @@ function generateHistoryFromDb(db) {
     }
   }
 
-  // 3. Aşılar
+  // 3. Eşleşmeler
+  if (Array.isArray(db.pairings)) {
+    for (const p of db.pairings) {
+      const male = byId(db.birds, p.maleId)
+      const female = byId(db.birds, p.femaleId)
+      const pairText = `${male ? ringOf(male) : 'Bilinmeyen'} × ${female ? ringOf(female) : 'Bilinmeyen'}`
+      const pTime = p.startDate || p.createdAt || p.updatedAt || new Date().toISOString()
+      const isEnded = p.active === false
+      list.push({
+        id: `seed_pair_${p.id}`,
+        type: isEnded ? 'pairing_remove' : 'pairing_add',
+        icon: isEnded ? '💔' : '❤️',
+        title: isEnded ? `Eş Ayrıldı: ${pairText}` : `Yeni Eşleşme: ${pairText}`,
+        detail: p.notes || (isEnded ? 'Eşleşme sonlandırıldı' : 'Eşleşme aktif'),
+        time: pTime.includes('T') ? pTime : `${pTime}T10:00:00.000Z`
+      })
+    }
+  }
+
+  // 4. Aşılar
   if (Array.isArray(db.vaccinations)) {
     for (const v of db.vaccinations) {
       const vTime = v.date || v.createdAt || new Date().toISOString().slice(0, 10)
@@ -217,7 +290,7 @@ function generateHistoryFromDb(db) {
     }
   }
 
-  // 4. İlaçlar
+  // 5. İlaçlar
   if (Array.isArray(db.medications)) {
     for (const m of db.medications) {
       list.push({
@@ -227,6 +300,40 @@ function generateHistoryFromDb(db) {
         title: `${m.name} İlacı Kaydedildi`,
         detail: `Doz: ${m.dosage || '—'}${m.purpose ? ` · Amaç: ${m.purpose}` : ''}`,
         time: m.createdAt || m.updatedAt || new Date().toISOString()
+      })
+    }
+  }
+
+  // 6. Tedaviler
+  if (Array.isArray(db.treatments)) {
+    for (const t of db.treatments) {
+      const bird = byId(db.birds, t.birdId)
+      const birdText = bird ? ringOf(bird) : 'Kuş'
+      const tTime = t.startDate || t.createdAt || t.updatedAt || new Date().toISOString()
+      const statusTxt = t.status === 'cured' ? 'İyileşti ✅' : (t.status === 'active' ? 'Aktif Tedavi 🚨' : 'Tedavi')
+      list.push({
+        id: `seed_treat_${t.id}`,
+        type: 'treatment_add',
+        icon: '🩺',
+        title: `${birdText}: ${t.medicineName || 'Tedavi'} (${statusTxt})`,
+        detail: t.notes || (t.dosage ? `Doz: ${t.dosage}` : 'Tedavi süreci'),
+        time: tTime.includes('T') ? tTime : `${tTime}T11:00:00.000Z`,
+        birdId: t.birdId || null
+      })
+    }
+  }
+
+  // 7. Takviyeler & Yemler
+  if (Array.isArray(db.supplements)) {
+    for (const s of db.supplements) {
+      const sTime = s.date || s.createdAt || s.updatedAt || new Date().toISOString()
+      list.push({
+        id: `seed_sup_${s.id}`,
+        type: 'sup_add',
+        icon: '🌾',
+        title: `${s.name || 'Takviye'} Verildi`,
+        detail: `Doz: ${s.dosage || '—'}${s.notes ? ` · ${s.notes}` : ''}`,
+        time: sTime.includes('T') ? sTime : `${sTime}T10:00:00.000Z`
       })
     }
   }

@@ -53,6 +53,7 @@ export function createApi(host) {
     supplementDelete: id => cloud.supplementDelete(id),
     settingsPut: s => cloud.settingsPut(s),
     dbSubscribe: cb => cloud.dbSubscribe(cb),
+    touchMember: (force = false) => (cloud.touchMember ? cloud.touchMember(force) : Promise.resolve()),
 
     // -------------------------------------------------------------- fotoğraf
     /** Seç → sıkıştır → yükle. Bileşenler tek çağrı bekliyor. */

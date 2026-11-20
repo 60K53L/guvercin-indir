@@ -27,7 +27,7 @@ export const trUpper = v => String(v ?? '').toLocaleUpperCase('tr-TR')
  */
 export const dispTr = v => trUpper(v).replace(/İ/g, 'i')
 
-export const SEX = { M: 'ERKEK', F: 'DİŞİ' }
+export const SEX = { M: 'ERKEK', F: 'DİŞİ', '?': 'YAVRU' }
 
 export const STATUS = [
   { value: 'damizlik', label: 'DAMIZLIK' },
@@ -792,16 +792,65 @@ export function compareBirds(a, b) {
  * `tercihEdilenKod` boşsa sıralama compareBirds ile birebir aynıdır.
  */
 export function parentCompare(tercihEdilenKod) {
-  const hedef = (tercihEdilenKod || '').trim().toLocaleUpperCase('tr-TR')
-  // SADECE hedef kodun GC'si öne çıkar. Diğer kodların GC kuşları
-  // normal yerinde kalır (compareBirds zaten kendi kod grubunun başında
-  // tutuyor); herkesi öne almak listeyi bozuyordu.
+  const hedefler = (Array.isArray(tercihEdilenKod) ? tercihEdilenKod : [tercihEdilenKod])
+    .filter(Boolean)
+    .map(k => String(k).trim().toLocaleUpperCase('tr-TR'))
+
+  // Normalize edilmiş hedef isimleri ve renkleri (örn. "TURUNCU KLİPS" -> "TURUNCU")
+  const hedefNorms = hedefler.map(h =>
+    h.replace(/\b(KLİPS|KLIPS|BONCUK|HALKA|MARKA)\b/gi, '').replace(/\s+/g, ' ').trim()
+  ).filter(Boolean)
+
+  const hedefColors = hedefler.map(h => ringMatch(h)?.kelime).filter(Boolean)
+
   const oncelik = (x) => {
-    if (!hedef) return 1
-    const kod = (x.code || '').trim().toLocaleUpperCase('tr-TR')
-    const gcMi = String(x.number ?? '').trim().toLocaleUpperCase('tr-TR') === 'GC'
-    return kod === hedef && gcMi ? 0 : 1
+    if (!x || !hedefler.length) return 1
+
+    // Kuşun tüm olası kodları (sol ayak, sağ ayak, ana kod, tireli parçalar)
+    const rawCodes = [
+      x.code,
+      x.leftCode,
+      x.rightCode,
+      x.code && x.code.includes('-') ? x.code.slice(0, x.code.lastIndexOf('-')).trim() : null,
+      x.leftCode && x.leftCode.includes('-') ? x.leftCode.slice(0, x.leftCode.lastIndexOf('-')).trim() : null,
+      x.rightCode && x.rightCode.includes('-') ? x.rightCode.slice(0, x.rightCode.lastIndexOf('-')).trim() : null
+    ].filter(Boolean).map(c => String(c).trim().toLocaleUpperCase('tr-TR'))
+
+    const isTarget = rawCodes.some(c => {
+      if (hedefler.includes(c)) return true
+      const cNorm = c.replace(/\b(KLİPS|KLIPS|BONCUK|HALKA|MARKA)\b/gi, '').replace(/\s+/g, ' ').trim()
+      if (hedefNorms.includes(cNorm)) return true
+      if (hedefNorms.some(hn => hn && (cNorm.startsWith(hn) || hn.startsWith(cNorm)))) return true
+      const cColor = ringMatch(c)?.kelime
+      if (cColor && hedefColors.includes(cColor)) return true
+      return false
+    })
+
+    if (!isTarget) return 1
+
+    // Kuşun tüm olası numaraları (sol numara, sağ numara, numara, tireli parçalar)
+    const xNums = [
+      x.number,
+      x.leftNumber,
+      x.rightNumber,
+      x.code && x.code.includes('-') ? x.code.slice(x.code.lastIndexOf('-') + 1).trim() : null,
+      x.leftCode && x.leftCode.includes('-') ? x.leftCode.slice(x.leftCode.lastIndexOf('-') + 1).trim() : null,
+      x.rightCode && x.rightCode.includes('-') ? x.rightCode.slice(x.rightCode.lastIndexOf('-') + 1).trim() : null
+    ].filter(Boolean).map(n => String(n).trim().toLocaleUpperCase('tr-TR'))
+
+    // GC damızlık kontrolü: numara, kod, ad veya ringOf içinde GC geçenler
+    const isGC = xNums.some(n => n === 'GC' || n.includes('GC')) ||
+      (x.name && x.name.toLocaleUpperCase('tr-TR').includes('GC')) ||
+      (x.code && x.code.toLocaleUpperCase('tr-TR').includes('GC')) ||
+      (x.leftCode && x.leftCode.toLocaleUpperCase('tr-TR').includes('GC')) ||
+      (x.rightCode && x.rightCode.toLocaleUpperCase('tr-TR').includes('GC')) ||
+      (typeof ringOf === 'function' && ringOf(x).toLocaleUpperCase('tr-TR').includes('GC'))
+
+    // SADECE seçilen hedef kodun GC damızlıkları en başa çıkar (0);
+    // kalan kuşlar normal compareBirds sıralamasını korur (1).
+    return isGC ? 0 : 1
   }
+
   return (a, b) => {
     const f = oncelik(a) - oncelik(b)
     return f !== 0 ? f : compareBirds(a, b)
@@ -928,6 +977,20 @@ export function clutchTimeline(clutch) {
     daysToHatch,
     daysToRing,
     progressPct
+  }
+}
+
+/** Yavrunun çıktığı günden geriye dönük yumurta tarihlerini hesaplar. */
+export function calculateClutchFromHatch(hatchDate, chickCount = 1) {
+  const hatch = hatchDate || todayIso()
+  const egg2Date = addDays(hatch, -18)
+  const egg1Date = addDays(egg2Date, -2)
+  return {
+    egg1Date,
+    egg2Date,
+    hatchDate: hatch,
+    chickCount: Number(chickCount) || 1,
+    status: 'hatched'
   }
 }
 

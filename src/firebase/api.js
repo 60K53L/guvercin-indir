@@ -184,7 +184,36 @@ export function createFirebaseApi() {
     }
   }
 
+  let lastTouchTime = 0
+
+  async function touchMemberActivity(force = false) {
+    try {
+      const user = auth.currentUser
+      if (!user) return
+      const nowMs = Date.now()
+      if (!force && nowMs - lastTouchTime < 120000) return
+      lastTouchTime = nowMs
+
+      const platform = platformName()
+      const device = deviceId()
+      const ref = memberDocRef(user.uid, platform, device)
+      const now = new Date().toISOString()
+      await setDoc(ref, {
+        uid: user.uid,
+        email: user.email || '',
+        appVersion: APP_VERSION,
+        buildTime: BUILD_TIME,
+        deviceId: device,
+        platform,
+        lastSeenAt: now
+      }, { merge: true })
+    } catch (err) {
+      console.warn('Üye son görülme güncellenemedi:', (err && err.message) || err)
+    }
+  }
+
   async function syncMember(user, rootSnap) {
+    lastTouchTime = Date.now()
     try {
       const platform = platformName()
       const device = deviceId()
@@ -253,6 +282,7 @@ export function createFirebaseApi() {
 
     /** Son fotoğraf yüklemesinin sıkıştırma istatistiği. */
     lastUploadStats: () => ({ ...lastUpload }),
+    touchMember: (force = false) => touchMemberActivity(force),
 
     // ---------------------------------------------------------------- oturum
     authState: async () => {
@@ -443,6 +473,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(birdsRef(uid), bird.id), stripUndefined({ ...bird, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(bird.id)
       } catch (err) { return fail(err) }
     },
@@ -451,6 +482,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(birdsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -459,6 +491,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(pairingsRef(uid), p.id), stripUndefined({ ...p, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(p.id)
       } catch (err) { return fail(err) }
     },
@@ -467,6 +500,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(pairingsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -475,6 +509,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(clutchesRef(uid), c.id), stripUndefined({ ...c, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(c.id)
       } catch (err) { return fail(err) }
     },
@@ -483,6 +518,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(clutchesRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -491,6 +527,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(medicationsRef(uid), m.id), stripUndefined({ ...m, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(m.id)
       } catch (err) { return fail(err) }
     },
@@ -499,6 +536,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(medicationsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -507,6 +545,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(vaccinationsRef(uid), v.id), stripUndefined({ ...v, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(v.id)
       } catch (err) { return fail(err) }
     },
@@ -515,6 +554,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(vaccinationsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -523,6 +563,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(treatmentsRef(uid), t.id), stripUndefined({ ...t, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(t.id)
       } catch (err) { return fail(err) }
     },
@@ -531,6 +572,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(treatmentsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -539,6 +581,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(doc(supplementsRef(uid), s.id), stripUndefined({ ...s, updatedAt: new Date().toISOString() }))
+        void touchMemberActivity(true)
         return ok(s.id)
       } catch (err) { return fail(err) }
     },
@@ -547,6 +590,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await deleteDoc(doc(supplementsRef(uid), id))
+        void touchMemberActivity(true)
         return ok(id)
       } catch (err) { return fail(err) }
     },
@@ -555,6 +599,7 @@ export function createFirebaseApi() {
       try {
         const uid = needAuth()
         await setDoc(userRef(uid), { settings: stripUndefined(settings) }, { merge: true })
+        void touchMemberActivity(true)
         return ok(true)
       } catch (err) { return fail(err) }
     },

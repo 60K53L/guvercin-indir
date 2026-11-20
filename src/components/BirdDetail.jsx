@@ -149,7 +149,51 @@ export default function BirdDetail({
     const formerMates = expand(groups.eski)
     const damOutside = externalParentText(bird, 'dam')
     const sireOutside = externalParentText(bird, 'sire')
-    return { p, kids, grandkids, sibs, desc, mates, formerMates, line, damOutside, sireOutside }
+
+    // Kardeşleri grupla: Öz Kardeşler, Aynı Babadan, Aynı Anneden
+    const sireId = bird.sireId || null
+    const damId = bird.damId || null
+    const full = []
+    const paternal = []
+    const maternal = []
+    sibs.forEach(s => {
+      const isSameSire = Boolean(sireId && s.sireId === sireId)
+      const isSameDam = Boolean(damId && s.damId === damId)
+      if (isSameSire && isSameDam) {
+        full.push(s)
+      } else if (isSameSire) {
+        paternal.push(s)
+      } else if (isSameDam) {
+        maternal.push(s)
+      }
+    })
+    const siblingGroups = []
+    if (full.length > 0) {
+      siblingGroups.push({
+        key: 'full',
+        title: 'Öz Kardeşler (Anne ve Baba Bir)',
+        badge: 'ÖZ KARDEŞ',
+        birds: full
+      })
+    }
+    if (paternal.length > 0) {
+      siblingGroups.push({
+        key: 'paternal',
+        title: damId ? 'Aynı Babadan (Anne Farklı)' : 'Aynı Babadan',
+        badge: 'BABA BİR',
+        birds: paternal
+      })
+    }
+    if (maternal.length > 0) {
+      siblingGroups.push({
+        key: 'maternal',
+        title: sireId ? 'Aynı Anneden (Baba Farklı)' : 'Aynı Anneden',
+        badge: 'ANNE BİR',
+        birds: maternal
+      })
+    }
+
+    return { p, kids, grandkids, sibs, siblingGroups, desc, mates, formerMates, line, damOutside, sireOutside }
   }, [bird, relationDb])
 
   useEffect(() => {
@@ -167,7 +211,7 @@ export default function BirdDetail({
     )
   }
 
-  const { p, kids, grandkids, sibs, desc, mates, formerMates, line, damOutside, sireOutside } = data
+  const { p, kids, grandkids, sibs, siblingGroups, desc, mates, formerMates, line, damOutside, sireOutside } = data
   // Yavrular ekranı ortaktır: başka kümesde yaşayan yavru da listede kalır.
   // Yalnızca rozetle "başka kümede" olduğu belirtilir.
   const otherCoopKids = kids.filter(k =>
@@ -402,10 +446,11 @@ export default function BirdDetail({
               {(bird.photos || []).length > 0 && <Thumb name={bird.photos[0]} />}
             </div>
             <div className="bird-hero-text">
-              <h2 className="bird-hero-title"><Ring text={ringOf(bird)} className="" /></h2>
+              <h2 className="bird-hero-title">
+                <Ring text={ringOf(bird)} className="ring" style={{ fontSize: 18, padding: '4px 14px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }} />
+              </h2>
               <div className="bird-hero-sub">
-                {bird.name ? (bird.name !== ringOf(bird) ? dispTr(`${bird.name} · `) : '') : dispTr('İsimsiz · ')}
-                <span className={`tag ${bird.sex}`}>{dispTr(SEX[bird.sex] || '—')}</span> · {dispTr(statusLabel(bird.status))}
+                <span className={`tag ${bird.sex === '?' || (!bird.sex && bird.status === 'yavru') ? 'yavru' : (bird.sex || '')}`}>{dispTr(SEX[bird.sex] || (bird.status === 'yavru' ? 'YAVRU' : '—'))}</span> · {dispTr(statusLabel(bird.status))}
                 {activeBirdTreatments.length > 0 && (
                   <span
                     className="tag"
@@ -507,7 +552,38 @@ export default function BirdDetail({
             <div className="panel">
               <h3>{dispTr('Bilgiler')}</h3>
               <dl className="kv">
-                <div><dt>{dispTr('Cinsiyet')}</dt><dd><span className={`tag ${bird.sex}`}>{dispTr(SEX[bird.sex] || '—')}</span></dd></div>
+                {/* 1. Ad Bilgisi */}
+                <div>
+                  <dt>{dispTr('Adı')}</dt>
+                  <dd>
+                    {bird.name ? (
+                      <strong style={{ fontSize: 15, color: 'var(--text)' }}>{dispTr(bird.name)}</strong>
+                    ) : (
+                      <span className="muted">{dispTr('—')}</span>
+                    )}
+                  </dd>
+                </div>
+
+                {/* 2. Cinsiyet */}
+                <div><dt>{dispTr('Cinsiyet')}</dt><dd><span className={`tag ${bird.sex === '?' || (!bird.sex && bird.status === 'yavru') ? 'yavru' : (bird.sex || '')}`}>{dispTr(SEX[bird.sex] || (bird.status === 'yavru' ? 'YAVRU' : '—'))}</span></dd></div>
+
+                {/* 3. Cinsi */}
+                <div>
+                  <dt>{dispTr('Cinsi')}</dt>
+                  <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {bird.cinsi ? (
+                      <>
+                        <BreedIcon cinsi={bird.cinsi} size={28} />
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>{dispTr(bird.cinsi)}</span>
+                      </>
+                    ) : '—'}
+                  </dd>
+                </div>
+
+                {/* 4. Ayırıcı İşaret */}
+                <div><dt>{dispTr('Ayırıcı İşaret')}</dt><dd>{dispTr(bird.color || '—')}</dd></div>
+
+                {/* 5. Kümes */}
                 <div>
                   <dt>{dispTr('Kümes')}</dt>
                   <dd style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -533,9 +609,8 @@ export default function BirdDetail({
                     </span>
                   </dd>
                 </div>
-                {/* Durum burada da yazılı: hero başlığındaki rozet tek
-                    başına anlaşılmıyordu, kuş SATILDI/KAÇTI/ÖLÜ olduğunda
-                    "damızlık" ile karıştırılıyordu. */}
+
+                {/* 6. Durum */}
                 <div>
                   <dt>{dispTr('Durum')}</dt>
                   <dd>
@@ -549,6 +624,8 @@ export default function BirdDetail({
                     )}
                   </dd>
                 </div>
+
+                {/* Klipsler ve Ek Bilgiler */}
                 {bird.leftCode && (
                   <div>
                     <dt>{dispTr('Sol Ayak Klipsi')}</dt>
@@ -586,27 +663,6 @@ export default function BirdDetail({
                 {!bird.rightCode && !bird.leftCode && bird.code && (
                   <div><dt>{dispTr('Klips Rengi')}</dt><dd><KlipsRing text={bird.code} /></dd></div>
                 )}
-                {(bird.leftCode || bird.rightCode) && (
-                  <div>
-                    <dt />
-                    <dd style={{ color: 'var(--muted)', fontSize: 12.5 }}>
-                      {dispTr('Listede')} {dispTr(listFootOf(bird) === 'right' ? 'SAĞ' : 'SOL')} {dispTr('ayak rengiyle gruplanıyor')}
-                      {dispTr(bird.listFoot ? ' (seçim)' : ' (otomatik)')}.
-                    </dd>
-                  </div>
-                )}
-                <div>
-                  <dt>{dispTr('Cinsi')}</dt>
-                  <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {bird.cinsi ? (
-                      <>
-                        <BreedIcon cinsi={bird.cinsi} size={28} />
-                        <span style={{ fontSize: 15, fontWeight: 700 }}>{dispTr(bird.cinsi)}</span>
-                      </>
-                    ) : '—'}
-                  </dd>
-                </div>
-                <div><dt>{dispTr('Ayırıcı İşaret')}</dt><dd>{dispTr(bird.color || '—')}</dd></div>
                 <div><dt>{dispTr('Hat / soy')}</dt><dd>{dispTr(bird.line || '—')}</dd></div>
                 {bird.federationRing && (
                   <div><dt>{dispTr('Federasyon Markası')}</dt><dd><strong style={{ color: '#38bdf8' }}>{dispTr(bird.federationRing)}</strong></dd></div>
@@ -1084,8 +1140,41 @@ export default function BirdDetail({
             <RelativeCard label="ANNE" bird={p.dam} outside={damOutside} db={relationDb} coops={coops} activeCoopId={activeCoopId} empty="ANNE BİLİNMİYOR." onOpen={onOpenBird} />
             <RelativeCard label="BABA" bird={p.sire} outside={sireOutside} db={relationDb} coops={coops} activeCoopId={activeCoopId} empty="BABA BİLİNMİYOR." onOpen={onOpenBird} />
           </div>
-          <h3 style={{ marginTop: 24 }}>{dispTr('Kardeşler')} ({sibs.length})</h3>
-          <BirdRows birds={sibs} db={relationDb} coops={coops} activeCoopId={activeCoopId} onOpen={onOpenBird} empty="Kardeş kaydı yok." />
+          <h3 style={{ marginTop: 24, marginBottom: 14 }}>{dispTr('Kardeşler')} ({sibs.length})</h3>
+          {sibs.length === 0 ? (
+            <p className="hint">{dispTr('Kardeş kaydı yok.')}</p>
+          ) : (
+            siblingGroups.map(grp => (
+              <div
+                key={grp.key}
+                style={{
+                  background: 'var(--panel-2)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  marginBottom: 16
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{dispTr(grp.title)}</span>
+                    <span className="count">({grp.birds.length})</span>
+                  </h4>
+                  <span className="tag" style={{ fontSize: 10 }}>{dispTr(grp.badge)}</span>
+                </div>
+                <BirdRows
+                  birds={grp.birds}
+                  db={relationDb}
+                  coops={coops}
+                  activeCoopId={activeCoopId}
+                  onOpen={onOpenBird}
+                  empty=""
+                  widthGroup="akraba"
+                  parentMode="both"
+                />
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -1552,7 +1641,7 @@ function RelativeCard({ label, bird, outside, db, coops, activeCoopId, empty, on
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="rel-ring"><Ring text={ringOf(bird)} className="" /></div>
             <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span>{dispTr(bird.name || 'İsimsiz')} · <span className={`tag ${bird.sex}`}>{dispTr(SEX[bird.sex] || '—')}</span></span>
+              <span>{dispTr(bird.name || 'İsimsiz')} · <span className={`tag ${bird.sex === '?' || (!bird.sex && bird.status === 'yavru') ? 'yavru' : (bird.sex || '')}`}>{dispTr(SEX[bird.sex] || (bird.status === 'yavru' ? 'YAVRU' : '—'))}</span></span>
               <CoopTag bird={bird} coops={coops} activeCoopId={activeCoopId} />
             </div>
             <div className="muted" style={{ fontSize: 13 }}>
@@ -1583,7 +1672,7 @@ function RelativeCard({ label, bird, outside, db, coops, activeCoopId, empty, on
  * gösterir. Böylece başka kümedeki yavru/eş/akraba, adın yanına rozet
  * sıkıştırılmadan okunur.
  */
-function BirdRows({ birds, db, coops = [], activeCoopId = '', onOpen, empty, sortMode = 'default', widthGroup = '' }) {
+function BirdRows({ birds, db, coops = [], activeCoopId = '', onOpen, empty, sortMode = 'default', widthGroup = '', parentMode = 'father' }) {
   if (!birds.length) return <p className="hint">{dispTr(empty)}</p>
   // Liste kaynağı ne olursa olsun (childrenOf, siblingsOf, chickIds…)
   // burada sıralanır. Kullanıcı kayıtları hangi sırayla girdiyse girsin
@@ -1637,15 +1726,20 @@ function BirdRows({ birds, db, coops = [], activeCoopId = '', onOpen, empty, sor
       const merged = publishWidths(widthGroup, sourceId.current, measured) || measured
       setColWidths(applyGap(merged))
     }
+
+    const unsub = widthGroup
+      ? subscribeWidths(widthGroup, widths => {
+          if (wide.matches) setColWidths(applyGap(widths))
+        })
+      : undefined
+
     measure()
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('resize', measure)
+      if (unsub) unsub()
+    }
   }, [birds, widthGroup])
-
-  useEffect(() => {
-    if (!widthGroup) return undefined
-    return subscribeWidths(widthGroup, widths => setColWidths(applyGap(widths)))
-  }, [widthGroup])
 
   return (
     <table className="grid bird-rows" ref={tableRef}>
@@ -1661,7 +1755,7 @@ function BirdRows({ birds, db, coops = [], activeCoopId = '', onOpen, empty, sor
             orantılı şişmesini engeller, böylece iki tablo hizalı kalır. */}
         <col className="bird-rows-spacer" />
       </colgroup>
-      <thead><tr><th></th><th>{dispTr('Künye')}</th><th>{dispTr('Ad')}</th><th>{dispTr('Babası')}</th><th>{dispTr('Cinsiyet')}</th><th>{dispTr('Kümes')}</th><th>{dispTr('Cinsi')}</th><th>{dispTr('Ayırıcı İşaret')}</th><th>{dispTr('Durum')}</th><th className="bird-rows-spacer" /></tr></thead>
+      <thead><tr><th></th><th>{dispTr('Künye')}</th><th>{dispTr('Ad')}</th><th style={parentMode === 'both' ? { textAlign: 'left', paddingLeft: 12 } : undefined}>{parentMode === 'both' ? dispTr('Anne / Baba') : dispTr('Babası')}</th><th>{dispTr('Cinsiyet')}</th><th>{dispTr('Kümes')}</th><th>{dispTr('Cinsi')}</th><th>{dispTr('Ayırıcı İşaret')}</th><th>{dispTr('Durum')}</th><th className="bird-rows-spacer" /></tr></thead>
       <tbody>
         {rows.map(b => (
           <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => onOpen(b.id)}>
@@ -1672,16 +1766,41 @@ function BirdRows({ birds, db, coops = [], activeCoopId = '', onOpen, empty, sor
             </td>
             <td data-label="Künye"><Ring text={ringOf(b)} style={{ fontSize: ringFontSize(ringOf(b)) }} /></td>
             <td data-label="Ad">{dispTr(b.name) || <span className="muted">—</span>}</td>
-            <td data-label="Babası" className="muted" style={{ fontSize: 12, whiteSpace: 'normal' }}>
+            <td data-label={parentMode === 'both' ? 'Anne / Baba' : 'Babası'} className="muted" style={{ fontSize: 12, whiteSpace: 'normal', ...(parentMode === 'both' ? { textAlign: 'left', paddingLeft: 12 } : {}) }}>
               {(() => {
                 const sire = (db?.birds || []).find(x => x.id === b.sireId)
-                if (!sire) return externalParentText(b, 'sire') || '—'
-                const sireRing = ringOf(sire)
-                const sireName = sire.name && sire.name !== sireRing ? dispTr(sire.name) : ''
-                return sireName ? `${sireRing} ${sireName}` : sireRing
+                const sireRing = sire ? ringOf(sire) : ''
+                const sireName = sire?.name && sire.name !== sireRing ? dispTr(sire.name) : ''
+                const sireText = sire ? (sireName ? `${sireRing} ${sireName}` : sireRing) : (externalParentText(b, 'sire') || '—')
+
+                if (parentMode === 'both') {
+                  const dam = (db?.birds || []).find(x => x.id === b.damId)
+                  const damRing = dam ? ringOf(dam) : ''
+                  const damName = dam?.name && dam.name !== damRing ? dispTr(dam.name) : ''
+                  const damText = dam ? (damName ? `${damRing} ${damName}` : damRing) : (externalParentText(b, 'dam') || '—')
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left', alignItems: 'flex-start', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 0', width: 44, textAlign: 'center', borderRadius: 4, background: 'rgba(236,72,153,0.15)', color: '#ec4899', flexShrink: 0, letterSpacing: '.04em' }}>
+                          {dispTr('ANNE')}
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{damText}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 0', width: 44, textAlign: 'center', borderRadius: 4, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', flexShrink: 0, letterSpacing: '.04em' }}>
+                          {dispTr('BABA')}
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>{sireText}</span>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return sireText
               })()}
             </td>
-            <td data-label="Cinsiyet"><span className={`tag ${b.sex}`}>{dispTr(SEX[b.sex] || '—')}</span></td>
+            <td data-label="Cinsiyet"><span className={`tag ${b.sex === '?' || (!b.sex && b.status === 'yavru') ? 'yavru' : (b.sex || '')}`}>{dispTr(SEX[b.sex] || (b.status === 'yavru' ? 'YAVRU' : '—'))}</span></td>
             <td data-label="Kümes"><CoopTag bird={b} coops={coops} activeCoopId={activeCoopId} compact always /></td>
             <td data-label="Cinsi" className="muted">{dispTr(b.cinsi || '—')}</td>
             <td data-label="Ayırıcı İşaret" className="muted">{dispTr(b.color || '—')}</td>

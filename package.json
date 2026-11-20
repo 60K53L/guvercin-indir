@@ -1,6 +1,6 @@
 {
   "name": "guvercin",
-  "version": "1.0.49",
+  "version": "1.0.56",
   "description": "Güvercin soy takip ve üreme yönetimi",
   "main": "electron/main.js",
   "author": "Güvercin",
@@ -10,7 +10,7 @@
     "build:renderer": "vite build",
     "start": "electron .",
     "dist": "node scripts/live-android.js --cleanup && vite build && electron-builder --win --x64 && node scripts/stamp-exe.js",
-    "test": "node scripts/test-data.mjs && node scripts/test-coops.mjs && node scripts/test-sort.mjs && node scripts/test-search.mjs && node scripts/check-turkish-rules.js && node scripts/check-option-caps.js && node scripts/check-ring-contrast.js && node scripts/check-display-case.js && node scripts/test-version-bump.js",
+    "test": "node scripts/test-data.mjs && node scripts/test-coops.mjs && node scripts/test-sort.mjs && node scripts/test-search.mjs && node scripts/test-activity-log.mjs && node scripts/check-turkish-rules.js && node scripts/check-option-caps.js && node scripts/check-ring-contrast.js && node scripts/check-display-case.js && node scripts/test-version-bump.js",
     "test:electron": "electron scripts/test-turkce.js && electron scripts/test-yavru.js && electron scripts/smoke.js",
     "scan:unused": "node scripts/scan-unused.js",
     "web:build": "vite build --config vite.web.config.js",

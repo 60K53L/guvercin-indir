@@ -444,6 +444,21 @@ console.log('\n15) Açılır listeler alfabetik, baba/anne seçiminde GC başa')
   const sira = [...babalar].sort(compareBirds).map(x => `${x.code}-${x.number}`)
   check('baba listesi GC başa, kod alfabetik',
     sira.join('|') === 'AYDIN-02|BEYAZ-GC|BEYAZ-01|BEYAZ-05|YEŞİL-03', sira.join('|'))
+
+  // parentCompare: hedef klips seçildiğinde o klipsin GC ve kuşları en üste çıkar
+  const { parentCompare } = await import('../src/lib.js')
+  const testAdaylar = [
+    { code: 'YEŞİL KLİPS', number: 'GC', rightCode: 'YEŞİL KLİPS', rightNumber: 'GC', sex: 'M' },
+    { code: 'BEYAZ KLİPS', number: '01', leftCode: 'BEYAZ KLİPS', leftNumber: '01', sex: 'M' },
+    { code: 'BEYAZ KLİPS', number: 'GC', rightCode: 'BEYAZ KLİPS', rightNumber: 'GC', sex: 'M' },
+    { code: 'SARI KLİPS', number: '05', leftCode: 'SARI KLİPS', leftNumber: '05', sex: 'M' }
+  ]
+  const siralanmisBeyaz = [...testAdaylar].sort(parentCompare('BEYAZ KLİPS'))
+  check('parentCompare BEYAZ GC en başta', siralanmisBeyaz[0].code === 'BEYAZ KLİPS' && siralanmisBeyaz[0].number === 'GC')
+
+  // İki ayaklı / dizi seçimi
+  const siralanmisDizi = [...testAdaylar].sort(parentCompare(['BEYAZ KLİPS']))
+  check('parentCompare dizi parametresiyle de BEYAZ GC en başta', siralanmisDizi[0].code === 'BEYAZ KLİPS' && siralanmisDizi[0].number === 'GC')
 }
 
 console.log('\n16) Künye renkleri gerçek ve okunur')
@@ -535,7 +550,7 @@ console.log('\n17) Anne/baba listesi: seçilen kodun GC\'si en üstte')
 
 console.log('\n18) Kuluçka zaman çizelgesi ve Akrabalık analizi')
 {
-  const { clutchTimeline, findCommonAncestors, addDays, diffDays } = await import('../src/lib.js')
+  const { clutchTimeline, findCommonAncestors, addDays, diffDays, calculateClutchFromHatch } = await import('../src/lib.js')
   const { migrate } = await import('../src/schema.js')
 
   // Tarih hesapları
@@ -549,6 +564,17 @@ console.log('\n18) Kuluçka zaman çizelgesi ve Akrabalık analizi')
   check('tahmini çıkım 18. gün', tl.expectedHatch === '2026-05-28')
   check('künye takma çıkımdan 7 gün sonra', tl.ringDate === '2026-06-04')
   check('yeme düşme çıkımdan 30 gün sonra', tl.weanDate === '2026-06-27')
+
+  // Geriye dönük yumurta tarihi hesaplama (calculateClutchFromHatch)
+  const calc1 = calculateClutchFromHatch('2026-05-28', 1)
+  check('1. yavru çıkımından 2. yumurta -18 gün', calc1.egg2Date === '2026-05-10')
+  check('1. yavru çıkımından 1. yumurta -20 gün', calc1.egg1Date === '2026-05-08')
+  check('1. yavru sayısı 1', calc1.chickCount === 1)
+  check('hesaplama durumu hatched', calc1.status === 'hatched')
+
+  const calc2 = calculateClutchFromHatch('2026-05-28', 2)
+  check('2. yavru sayısı 2', calc2.chickCount === 2)
+  check('2. yavru 2. yumurta -18 gün', calc2.egg2Date === '2026-05-10')
 
   // Şema taşıma clutches ve vaccinations dizilerini garanti eder
   const m = migrate({ birds: [], pairings: [] })

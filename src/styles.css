@@ -1463,6 +1463,7 @@ table.grid.bird-rows .ring.ring-chip {
 }
 .tag.M { background: var(--tag-m-bg); color: var(--tag-m-fg); }
 .tag.F { background: var(--tag-f-bg); color: var(--tag-f-fg); }
+.tag.yavru, .tag.YAVRU, .tag\? { background: rgba(16, 185, 129, 0.18); color: #34d399; border-color: rgba(16, 185, 129, 0.35); }
 
 .overlay {
   position: fixed; inset: 0; background: #000000bb; display: flex;
@@ -2791,12 +2792,14 @@ a { color: var(--accent-2); }
     padding: 16px 16px 0;
     border-radius: 14px;
     /* Taşma olursa kendi içinde kaydır, dışarı taşma.
-       ... - var(--nav-h) terimi mobil alt menüyü hesaba katar: eski hesap
-       menüyü düşmüyor ve modal alt menünün üstüne biniyordu. */
-    max-height: calc(100vh - max(var(--sat), 24px) - var(--sab) - var(--nav-h) - 34px);
+       Dinamik viewport (100dvh) ile mobil klavye açılınca modal otomatik uyum sağlar. */
+    max-height: calc(100vh - max(var(--sat), 24px) - var(--sab) - var(--nav-h) - 24px);
+    max-height: calc(100dvh - max(var(--sat), 24px) - var(--sab) - var(--nav-h) - 24px);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    scroll-padding: 70px 0 280px 0;
+    scroll-behavior: smooth;
   }  .modal.wide { max-width: 100%; }
   .modal-head h2 { font-size: 16px; padding: 0 46px; }
 

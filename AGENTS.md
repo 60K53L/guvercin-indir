@@ -158,6 +158,20 @@ Güvercin: güvercin soy takip ve üreme yönetimi uygulaması. Tek React kod ta
 - OTA/Capgo yayını ayrıca kullanıcı onayı gerektirir; GitHub yedeği bu onaydan
   bağımsız olarak her güncellemeden sonra alınır.
 
+## Drive yedeği (kalıcı kural)
+
+- Drive klasörü: `G:\Drive'ım\Code\GUVERCIN-APK`. Tüm yedekler buraya kopyalanır.
+- İçerik ve üreten komut:
+  - APK → `Güvercin-<sürüm>-<damga>.apk` (`npm run mobile:apk`)
+  - Web ZIP → `Güvercin-Web-<sürüm>-<damga>.zip` (`npm run web:backup`)
+  - Kaynak ZIP → `Güvercin-KaynakKod-<sürüm>-<damga>.zip` (`npm run backup:source`)
+  - OTA ZIP → `Güvercin-OTA-<sürüm>-<damga>.zip` (`npm run web:publish` / `npm run ota`)
+  - `version.json` (son OTA bilgisi)
+- Her türden **son 2 sürüm** saklanır (`pruneOldVersions`), eskiler otomatik silinir.
+- Tam yedek sırası: `npm run mobile:apk` → `npm run backup:github` (web:backup +
+  backup:source + backup:release) → `npm run web:publish` (onaylı). OTA yayını
+  kullanıcı onayı gerektirir; diğerleri onaysız çalışır.
+
 ## Yapma
 
 - `src/firebase/config.js` içine yeni API key/sır yazma; mevcut yapılandırma

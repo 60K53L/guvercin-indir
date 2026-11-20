@@ -43,6 +43,8 @@ export const BREED_CATALOG = [
   { id: 'MISRI_CIKOLATA', name: 'ÇİKOLATA KANAT', group: 'Mısri', file: 'misri_cikolata.svg', family: 'MISRI', color: 'CIKOLATA' },
   { id: 'MISRI_NUHUDI', name: 'NUHUDİ KANAT', group: 'Mısri', file: 'misri_nuhudi.svg', family: 'MISRI', color: 'NUHUDI' },
   { id: 'MISRI_MAVI', name: 'MAVİ KANAT', group: 'Mısri', file: 'misri_mavi.svg', family: 'MISRI', color: 'MAVI' },
+  { id: 'MISRI_SEKERI', name: 'ŞEKERİ KANAT', group: 'Mısri', file: 'misri_sekeri.svg', family: 'MISRI', color: 'SEKERI' },
+  { id: 'MISRI_SEKER', name: 'ŞEKER KANAT', group: 'Mısri', file: 'misri_seker.svg', family: 'MISRI', color: 'SEKER' },
   { id: 'MISRI_BEYAZ', name: 'DÜZ BEYAZ MISRİ', group: 'Mısri', file: 'misri_beyaz.svg', family: 'MISRI', color: 'BEYAZ' }
 ]
 
@@ -71,9 +73,11 @@ export function getBreedVisualInfo(cinsi) {
   const isKomple = txt.includes('KOMPLE')
   const isBango = txt.includes('BANGO')
   const isTip = txt.includes('TİP') || txt.includes('TIP')
-  const isMisri = txt.includes('MISRİ') || txt.includes('MISRI') || txt.includes('KANAT')
+  const isMisri = txt.includes('MISRİ') || txt.includes('MISRI') || txt.includes('KANAT') || txt.includes('ŞEKER') || txt.includes('SEKER')
 
   // Renk tespiti
+  const hasSekeri = txt.includes('ŞEKERİ') || txt.includes('SEKERI')
+  const hasSeker = (txt.includes('ŞEKER') || txt.includes('SEKER')) && !hasSekeri
   const hasSari = txt.includes('SARI') || txt.includes('LİMON') || txt.includes('LIMON') || txt.includes('SARI KANAT')
   const hasKara = txt.includes('KARA') || txt.includes('SİYAH') || txt.includes('SIYAH') || txt.includes('ARAP')
   const hasKirmizi = txt.includes('KIRMIZI') || txt.includes('AL')
@@ -154,6 +158,8 @@ export function getBreedVisualInfo(cinsi) {
 
   // 4. Mısri Ailesi Eşleşmesi
   if (isMisri) {
+    if (hasSekeri) return { id: 'MISRI_SEKERI', label: 'Şekeri Kanat', file: 'misri_sekeri.svg' }
+    if (hasSeker) return { id: 'MISRI_SEKER', label: 'Şeker Kanat', file: 'misri_seker.svg' }
     if (hasMavi) return { id: 'MISRI_MAVI', label: 'Mavi Kanat', file: 'misri_mavi.svg' }
     if (hasKara) return { id: 'MISRI_KARA', label: 'Kara Kanat', file: 'misri_kara.svg' }
     if (hasKirmizi) return { id: 'MISRI_KIRMIZI', label: 'Kırmızı Kanat', file: 'misri_kirmizi.svg' }

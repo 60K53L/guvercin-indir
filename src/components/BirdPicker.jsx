@@ -579,14 +579,17 @@ export default function BirdPicker({ /*UNIQUE_MARKER_XYZ*/
                 const isSelected = value === b.id
                 const tagText = getTag ? getTag(b) : null
                 const bCinsiUpper = b.cinsi ? trUpper(b.cinsi) : ''
-                const chip = (bCinsiUpper.includes('BEYAZ KIRMIZILARDAN') || bCinsiUpper.includes('BEYAZ SARILARDAN') || bCinsiUpper.includes('BEYAZ KIRMIZILAR') || bCinsiUpper.includes('BEYAZ SARILAR'))
-                  ? ringChip('BEYAZ')
-                  : (ringChip(ringOf(b)) || 
-                    (b.code && ringChip(b.code)) || 
-                    (b.leftCode && ringChip(b.leftCode)) || 
-                    (b.rightCode && ringChip(b.rightCode)) || 
-                    (b.cinsi && ringChip(b.cinsi)) ||
-                    (b.color && ringChip(b.color)))
+                // Kuşun kendi klipsi (ringOf, code, sol/sağ ayak) DAİMA ilk önceliktir.
+                // Yalnızca klips/künye rengi yoksa cins/renk kontrolüne bakılır.
+                const ringChipVal = ringChip(ringOf(b)) || 
+                  (b.code && ringChip(b.code)) || 
+                  (b.leftCode && ringChip(b.leftCode)) || 
+                  (b.rightCode && ringChip(b.rightCode))
+
+                const chip = ringChipVal ||
+                  (bCinsiUpper.includes('BEYAZ KIRMIZILARDAN') || bCinsiUpper.includes('BEYAZ SARILARDAN') || bCinsiUpper.includes('BEYAZ KIRMIZILAR') || bCinsiUpper.includes('BEYAZ SARILAR')
+                    ? ringChip('BEYAZ')
+                    : (b.cinsi && ringChip(b.cinsi)) || (b.color && ringChip(b.color)))
 
                 return (
                   <button

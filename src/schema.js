@@ -3,7 +3,7 @@
  * gelen veri aynı formata döner, böylece React bileşenleri farkı bilmez.
  */
 import { normalizeThemeId } from './theme-ids.js'
-import { DEFAULT_MED_CATEGORIES, sortTr, normalizeExternalParent } from './lib.js'
+import { DEFAULT_MED_CATEGORIES, sortTr, normalizeExternalParent, isDualCode } from './lib.js'
 import { defaultCoop, fallbackCoopId, normalizeCoops, sortCinsi } from './coops.js'
 
 export const SCHEMA_VERSION = 2
@@ -209,6 +209,22 @@ export function migrate(data) {
     if (!Array.isArray(b.photos)) b.photos = []
     if (!b.coopId || !coopIds.has(b.coopId)) b.coopId = defaultCoopId
     out.birds[i] = normalizeBird(b)
+  }
+
+  /* KLİPS LİSTESİ: Kuşların üzerindeki tüm kodlar da listeye dahil edilir.
+     Böylece ayarlardan bağımsız olarak girilmiş klips renkleri (ör. BEJ KLİPS)
+     ayarlarda ve seçicilerde eksiksiz listelenir. */
+  const birdCodes = out.birds.flatMap(b => [b.code, b.leftCode, b.rightCode]).filter(Boolean)
+  if (birdCodes.length) {
+    out.settings.codes = sortTr([...new Set([...out.settings.codes, ...birdCodes])])
+    out.settings.rightCodes = sortTr([...new Set([...out.settings.rightCodes, ...birdCodes])])
+    out.settings.leftCodes = sortTr([...new Set([...out.settings.leftCodes, ...birdCodes])])
+    if (Array.isArray(out.settings.singleCodes)) {
+      out.settings.singleCodes = sortTr([...new Set([...out.settings.singleCodes, ...birdCodes.filter(c => !isDualCode(c))])])
+    }
+    if (Array.isArray(out.settings.dualCodes)) {
+      out.settings.dualCodes = sortTr([...new Set([...out.settings.dualCodes, ...birdCodes.filter(c => isDualCode(c))])])
+    }
   }
 
   /* CİNS LİSTESİ KÜMES BAZINDA TUTULUR.

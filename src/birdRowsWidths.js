@@ -85,6 +85,12 @@ export function subscribeWidths(groupId, fn) {
   if (!groupId) return () => {}
   const g = group(groupId)
   g.listeners.add(fn)
+  // Abone olunduğunda gruptaki diğer tablolardan toplanmış
+  // en güncel genişlikleri hemen yeni aboneye aktar.
+  const current = mergeWidths(...g.sources.values())
+  if (current.length && current.some(w => w > 0)) {
+    fn(current)
+  }
   return () => g.listeners.delete(fn)
 }
 
@@ -117,7 +123,7 @@ export function measureTableColumns(tableEl, count = BIRD_ROW_COLUMN_COUNT) {
     })
   }
   read(Array.from(tableEl.querySelectorAll('thead th')))
-  read(Array.from(tableEl.querySelectorAll('tbody tr:first-child td')))
+  read(Array.from(tableEl.querySelectorAll('tbody tr td')))
 
   tableEl.classList.remove('bird-rows-natural')
   cols.forEach((col, i) => { col.style.width = savedWidths[i] })

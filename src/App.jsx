@@ -16,12 +16,13 @@ import TreatmentBoard from './components/TreatmentBoard.jsx'
 import ActivityLogModal from './components/ActivityLogModal.jsx'
 import { emptyDb, normalizeBird } from './schema.js'
 import { initNotificationChannel, syncClutchNotifications } from './notifications.js'
-import { recordActivity, getAllActivities, clearActivities } from './activityLog.js'
+import { recordActivity, recordSessionLogin, getAllActivities, clearActivities } from './activityLog.js'
 import UpdateModal from './components/UpdateModal.jsx'
 import VersionHistoryModal from './components/VersionHistoryModal.jsx'
 import CoopPicker from './components/CoopPicker.jsx'
 import { ALL_COOPS, birdCoopId, coopList, coopStats, fallbackCoopId, scopeDb, withCoopCinsi, sortCinsi } from './coops.js'
 import { notifyAppReady, checkForUpdate, rememberDismissedUpdate } from './updater.js'
+import { APP_VERSION } from './version.js'
 
 /**
  * Bir nesneden yalnızca ARAYÜZDE hesaplanan alanları çıkarır.
@@ -215,6 +216,52 @@ export default function App() {
     })
     return off
   }, [configured])
+
+  // Oturum / aktiflik ve mobil arka plandan dönüş takibi (son görülme ve giriş logu)
+  useEffect(() => {
+    if (!configured || !auth.signedIn) return
+
+    const plat = typeof window !== 'undefined' && window.__guvercinPlatform
+      ? window.__guvercinPlatform
+      : (Capacitor.isNativePlatform() ? 'capacitor' : 'web')
+
+    // İlk açılışta oturum kaydı ve son görülme tazele
+    recordSessionLogin(plat, APP_VERSION)
+    if (typeof api !== 'undefined' && typeof api.touchMember === 'function') {
+      api.touchMember(false)
+    }
+
+    const handleActive = () => {
+      if (typeof api !== 'undefined' && typeof api.touchMember === 'function') {
+        api.touchMember(false)
+      }
+      recordSessionLogin(plat, APP_VERSION)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleActive()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('focus', handleActive)
+
+    let capHandle = null
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) handleActive()
+      }).then(h => { capHandle = h }).catch(() => {})
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('focus', handleActive)
+      if (capHandle && typeof capHandle.remove === 'function') {
+        capHandle.remove()
+      }
+    }
+  }, [configured, auth.signedIn])
 
   // Android yerel kuluçka bildirim kanalı ve zamanlanmış alarmlar
   useEffect(() => {
@@ -1006,7 +1053,7 @@ const upsertPairing = useCallback(async (p) => {
 
       <div className={'body view-' + view}>
         {view === 'list' && !openId && (
-          <BirdList db={viewDb} allDb={db} stats={stats} activeCoop={activeCoop} onOpen={openBird} onNew={() => setEditing({ coopId: activeCoop?.id || coops[0]?.id || '' })} />
+          <BirdList db={viewDb} allDb={db} stats={stats} activeCoop={activeCoop} onOpen={openBird} onNew={(initial = {}) => setEditing({ coopId: activeCoop?.id || coops[0]?.id || '', ...initial })} />
         )}
 
         {view === 'list' && openId && (
@@ -1047,12 +1094,24 @@ const upsertPairing = useCallback(async (p) => {
             onUpsertClutch={upsertClutch}
             onRemoveClutch={removeClutch}
             onUpsertPairing={upsertPairing}
-            onNewChick={({ sireId, damId, birthDate }) => {
+            onNewChick={({ sireId, damId, birthDate, nest }) => {
               const sire = dbRef.current.birds.find(b => b.id === sireId)
               const dam = dbRef.current.birds.find(b => b.id === damId)
               const parent = sire || dam
               const coopId = parent ? birdCoopId(parent, dbRef.current) : (activeCoop?.id || '')
-              setEditing({ sireId, damId, birthDate, status: 'damizlik', coopId })
+              const cinsi = dam?.cinsi || sire?.cinsi || ''
+              const line = dam?.line || sire?.line || ''
+              setEditing({
+                sireId,
+                damId,
+                birthDate,
+                status: 'yavru',
+                sex: '?',
+                coopId,
+                cinsi,
+                line: line || 'BİZİM YAVRU',
+                nestHint: nest || ''
+              })
               setView('list')
               setOpenId(null)
             }}

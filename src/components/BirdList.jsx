@@ -457,7 +457,20 @@ export default function BirdList({ db, allDb, stats, onOpen, onNew, activeCoop }
           </button>
         )}
         <span className="muted count">{resultCount} {dispTr('sonuç')}</span>
-        <button className="btn primary" onClick={onNew}>{dispTr('+ Yeni Kuş')}</button>
+        <button
+          className="btn"
+          style={{
+            background: 'rgba(16, 185, 129, 0.15)',
+            borderColor: 'rgba(16, 185, 129, 0.45)',
+            color: '#34d399',
+            fontWeight: 700
+          }}
+          onClick={() => onNew?.({ status: 'yavru', sex: '?', line: 'BİZİM YAVRU' })}
+          title="Doğrudan yavru kuş kaydı açar"
+        >
+          {dispTr('🐣 + Yeni Yavru')}
+        </button>
+        <button className="btn primary" onClick={() => onNew?.()}>{dispTr('+ Yeni Kuş')}</button>
       </div>
 
       {/* Klips grubu kartı: başlık tek satır ortada; grup sayısı + buton alt
@@ -684,7 +697,7 @@ function ClipLines({ bird: b }) {
   if (!lines.length) {
     return (
       <div className="bird-ring">
-        {b.sex && <span className={`tag ${b.sex}`}>{dispTr(SEX[b.sex] || '—')}</span>}
+        {(b.sex || b.status === 'yavru') && <span className={`tag ${b.sex === '?' || (!b.sex && b.status === 'yavru') ? 'yavru' : (b.sex || '')}`}>{dispTr(SEX[b.sex] || (b.status === 'yavru' ? 'YAVRU' : '—'))}</span>}
         {b.cinsi && (
           <span className="bird-cinsi" style={cinsiBadgeStyle(b.cinsi)} title={dispTr(b.cinsi)}>
             <span>{dispTr(b.cinsi)}</span>
@@ -723,7 +736,7 @@ function ClipLines({ bird: b }) {
               </span>
             )
           })() : null}
-          {i === 0 && b.sex ? <span className={`tag ${b.sex}`}>{dispTr(SEX[b.sex] || '—')}</span> : null}
+          {i === 0 && (b.sex || b.status === 'yavru') ? <span className={`tag ${b.sex === '?' || (!b.sex && b.status === 'yavru') ? 'yavru' : (b.sex || '')}`}>{dispTr(SEX[b.sex] || (b.status === 'yavru' ? 'YAVRU' : '—'))}</span> : null}
           {i === 0 && b.cinsi ? (
             <span className="bird-cinsi" style={cinsiBadgeStyle(b.cinsi)} title={dispTr(b.cinsi)}>
               <span>{dispTr(b.cinsi)}</span>
@@ -1029,7 +1042,7 @@ function MatedList({ db, allDb, coops = [], activeCoopId = '', onClose, onOpen }
                   title="Kuş detayına gitmek için tıklayın"
                 >
                   <Ring text={ringOf(b)} />
-                  <span className={`tag ${b.sex}`}>{dispTr(SEX[b.sex] || 'CİNSİYETSİZ')}</span>
+                  <span className={`tag ${b.sex === '?' || (!b.sex && b.status === 'yavru') ? 'yavru' : (b.sex || '')}`}>{dispTr(SEX[b.sex] || (b.status === 'yavru' ? 'YAVRU' : 'CİNSİYETSİZ'))}</span>
                   <span className="muted">{dispTr(b.cinsi || '—')}</span>
                   {b.name && <span className="muted">«{dispTr(b.name)}»</span>}
                   <CoopTag bird={b} coops={coops} activeCoopId={activeCoopId} compact />
